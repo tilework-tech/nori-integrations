@@ -75,3 +75,31 @@ files.info, files.remote.list, team.accessLogs, team.billableInfo, auth.teams.li
 Use `for await (const page of client.paginate(method, params))` to iterate all pages.
 For each page, find array-valued keys (excluding `ok`, `response_metadata`, `headers`, etc.)
 and concatenate them across pages. Return a single merged response object.
+
+## --dry-run Flag Design
+
+### Output format
+Structured JSON matching existing conventions:
+```json
+{
+  "ok": true,
+  "dry_run": true,
+  "method": "chat.postMessage",
+  "params": { "channel": "C123", "text": "Hello" },
+  "token_present": true,
+  "paginate": false
+}
+```
+
+### Key decisions
+- **Don't require token**: Report `token_present: true/false` but don't exit(1) — dry-run previews the request, not runtime requirements
+- **Warn on unknown methods**: If method not in KNOWN_METHODS, add `"warning"` field but don't fail — unknown methods may be valid
+- **Exit code 0**: Dry-run that resolves successfully always exits 0. Input parsing errors (bad JSON stdin) still exit 2.
+- **--paginate + --dry-run**: Note pagination was requested in output but don't attempt it
+- **Filter from rawArgs**: Same pattern as --json-input and --paginate on line 77 of index.ts
+
+## Spec File Relocation
+
+Per APPLICATION-SPEC.md: "When complete, move the APPLICATION-SPEC.md and any other spec md files to a nori-slack-cli/spec folder."
+- Create `nori-slack-cli/spec/` directory
+- Move APPLICATION-SPEC.md into it

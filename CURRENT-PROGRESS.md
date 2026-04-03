@@ -1,8 +1,8 @@
 # Current Progress
 
-## Status: Pagination Support Added
+## Status: Dry-Run Support + Spec Relocation
 
-The nori-slack-cli project has core CLI infrastructure plus automatic pagination, with 27 passing tests.
+The nori-slack-cli project has core CLI infrastructure, automatic pagination, and dry-run preview, with 32 passing tests.
 
 ## Completed
 
@@ -25,15 +25,22 @@ The nori-slack-cli project has core CLI infrastructure plus automatic pagination
 - **Leverages `WebClient.paginate()`**: Uses the SDK's built-in cursor pagination — no manual cursor management
 - **27 tests passing**: 5 new paginate unit tests, 1 new CLI integration test
 
+### Commit 4: --dry-run flag + spec file relocation
+- **`--dry-run` flag**: Previews the resolved API request without making it. Outputs method, params, token presence, pagination intent, and warnings for unknown methods.
+- **Token not required for dry-run**: Reports `token_present: true/false` but does not fail — useful for parameter validation before token setup
+- **Unknown method warning**: If method is not in KNOWN_METHODS, adds a warning field without failing
+- **Spec relocation**: Moved APPLICATION-SPEC.md to nori-slack-cli/spec/ per spec requirements
+- **32 tests passing**: 5 new dry-run CLI integration tests
+
 ## What Works
 - `nori-slack chat.postMessage --channel C123 --text "hello"` (with valid SLACK_BOT_TOKEN)
 - `nori-slack conversations.list --limit 10`
 - `nori-slack conversations.list --paginate` (fetches all pages automatically)
 - `echo '{"channel":"C123","text":"hi"}' | nori-slack chat.postMessage --json-input`
+- `nori-slack chat.postMessage --dry-run --channel C123 --text "hello"` (previews request)
 - `nori-slack list-methods`
 - Structured error output for missing token, invalid auth, rate limits, network errors
 
 ## Next Steps
-- Build and PATH registration (`npm run build` → `npm link`)
-- Move APPLICATION-SPEC.md to nori-slack-cli/spec/ as spec says
-- Consider adding `--dry-run` flag for input validation without API calls
+- Build and PATH registration verification (`npm run build` → `npm link`)
+- Additional help text improvements for agent consumption

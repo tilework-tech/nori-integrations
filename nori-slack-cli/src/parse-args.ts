@@ -12,8 +12,9 @@ function coerceValue(value: string): unknown {
     }
   }
 
-  // Coerce numbers, but not strings with leading zeros (like "007")
-  if (/^-?\d+(\.\d+)?$/.test(value) && !(/^0\d/.test(value))) {
+  // Coerce integers only — floats stay as strings to preserve precision
+  // (Slack timestamps like thread_ts="1716000000.001200" lose trailing zeros as numbers)
+  if (/^-?\d+$/.test(value) && !(/^0\d/.test(value))) {
     const num = Number(value);
     if (!isNaN(num)) return num;
   }

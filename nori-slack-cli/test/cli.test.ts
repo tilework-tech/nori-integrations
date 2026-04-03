@@ -102,4 +102,70 @@ describe('CLI integration', () => {
     expect(output.ok).toBe(false);
     expect(output.error).toBe('invalid_auth');
   });
+
+  it('--dry-run outputs resolved request without calling the API', async () => {
+    const result = await runCli(
+      ['chat.postMessage', '--dry-run', '--channel', 'C123', '--text', 'hello'],
+      { SLACK_BOT_TOKEN: 'xoxb-test-token' }
+    );
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.ok).toBe(true);
+    expect(output.dry_run).toBe(true);
+    expect(output.method).toBe('chat.postMessage');
+    expect(output.params.channel).toBe('C123');
+    expect(output.params.text).toBe('hello');
+    expect(output.token_present).toBe(true);
+  });
+
+  it('--dry-run without token exits 0 and reports token_present false', async () => {
+    const result = await runCli(
+      ['chat.postMessage', '--dry-run', '--channel', 'C123'],
+      { SLACK_BOT_TOKEN: '' }
+    );
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.dry_run).toBe(true);
+    expect(output.token_present).toBe(false);
+  });
+
+  it('--dry-run warns on unknown method', async () => {
+    const result = await runCli(
+      ['fake.unknownMethod', '--dry-run', '--foo', 'bar'],
+      { SLACK_BOT_TOKEN: 'xoxb-test-token' }
+    );
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.dry_run).toBe(true);
+    expect(output.method).toBe('fake.unknownMethod');
+    expect(output.warning).toBeDefined();
+    expect(output.warning).toContain('not in the known methods list');
+  });
+
+  it('--dry-run with --paginate reports paginate true', async () => {
+    const result = await runCli(
+      ['conversations.list', '--dry-run', '--paginate', '--limit', '50'],
+      { SLACK_BOT_TOKEN: 'xoxb-test-token' }
+    );
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.dry_run).toBe(true);
+    expect(output.paginate).toBe(true);
+    expect(output.params.limit).toBe(50);
+  });
+
+  it('--dry-run with --json-input merges stdin params', async () => {
+    const jsonInput = JSON.stringify({ channel: 'C123', text: 'from stdin' });
+    const result = await runCliWithStdin(
+      ['chat.postMessage', '--dry-run', '--json-input', '--thread-ts', '123.456'],
+      jsonInput,
+      { SLACK_BOT_TOKEN: 'xoxb-test-token' }
+    );
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.dry_run).toBe(true);
+    expect(output.params.channel).toBe('C123');
+    expect(output.params.text).toBe('from stdin');
+    expect(output.params.thread_ts).toBe('123.456');
+  });
 });

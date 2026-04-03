@@ -30,17 +30,11 @@ program
   .argument('<method>', 'Slack Web API method (e.g., chat.postMessage)')
   .option('--json-input', 'Read parameters as JSON from stdin')
   .option('--paginate', 'Automatically fetch all pages and merge results')
+  .option('--dry-run', 'Preview the API request without sending it. Shows method, resolved params, and token status.')
   .allowUnknownOption(true)
   .allowExcessArguments(true)
   .action(async (method: string, opts: Record<string, any>) => {
     const token = process.env.SLACK_BOT_TOKEN;
-    if (!token) {
-      const error = formatError({ code: 'no_token' }, SOURCE_DIR);
-      process.stdout.write(JSON.stringify(error) + '\n');
-      process.exit(1);
-    }
-
-    const client = new WebClient(token);
 
     let params: Record<string, unknown> = {};
 
@@ -73,10 +67,35 @@ program
     }
 
     // Parse CLI args directly from process.argv, skipping node, script, and method
+    const CLI_OPTIONS = ['--json-input', '--paginate', '--dry-run'];
     const methodIndex = process.argv.indexOf(method);
-    const rawArgs = methodIndex >= 0 ? process.argv.slice(methodIndex + 1).filter(a => a !== '--json-input' && a !== '--paginate') : [];
+    const rawArgs = methodIndex >= 0 ? process.argv.slice(methodIndex + 1).filter(a => !CLI_OPTIONS.includes(a)) : [];
     const cliParams = parseArgs(rawArgs);
     params = { ...params, ...cliParams };
+
+    if (opts.dryRun) {
+      const dryRunResult: Record<string, unknown> = {
+        ok: true,
+        dry_run: true,
+        method,
+        params,
+        token_present: !!token,
+        paginate: !!opts.paginate,
+      };
+      if (!KNOWN_METHODS.includes(method)) {
+        dryRunResult.warning = `Method '${method}' is not in the known methods list. It may still be valid.`;
+      }
+      process.stdout.write(JSON.stringify(dryRunResult) + '\n');
+      return;
+    }
+
+    if (!token) {
+      const error = formatError({ code: 'no_token' }, SOURCE_DIR);
+      process.stdout.write(JSON.stringify(error) + '\n');
+      process.exit(1);
+    }
+
+    const client = new WebClient(token);
 
     try {
       let result;

@@ -15,7 +15,10 @@ Path: @/nori-slack-cli/src
 
 **Entry point (`index.ts`)**
 - Sets up Commander with two code paths: `list-methods` subcommand and the default dynamic method handler
-- The dynamic handler: validates `SLACK_BOT_TOKEN` env var, optionally reads JSON from stdin, parses CLI flags, merges params (CLI flags win over stdin), then branches: `--paginate` triggers `client.paginate()` + `mergePages()`, otherwise `client.apiCall()`; writes result JSON to stdout
+- The dynamic handler: optionally reads JSON from stdin, parses CLI flags, merges params (CLI flags win over stdin), then branches into three paths:
+  1. `--dry-run`: short-circuits immediately after param resolution -- outputs a JSON preview with `ok`, `dry_run`, `method`, `params`, `token_present`, `paginate`, and optionally a `warning` for unknown methods. Does not require a token. Always exits 0.
+  2. `--paginate`: validates token, then calls `client.paginate()` + `mergePages()`
+  3. Default: validates token, then calls `client.apiCall()`
 - When no arguments are provided (`process.argv.length <= 2`), help text and error go to stderr and the process exits with code 2
 
 **Pagination merging (`paginate.ts`)**
@@ -38,8 +41,8 @@ Path: @/nori-slack-cli/src
 - Serves as a discoverability aid only; the comment in the file explicitly notes the CLI is not limited to these methods
 
 ### Things to Know
-- Both `--json-input` and `--paginate` are consumed by Commander as known options; all other flags pass through via `allowUnknownOption()` and are parsed by `parseArgs` from `process.argv`
-- The raw args filter explicitly strips `--json-input` and `--paginate` before passing to `parseArgs`, preventing them from being sent as Slack API parameters
+- `--json-input`, `--paginate`, and `--dry-run` are consumed by Commander as known options; all other flags pass through via `allowUnknownOption()` and are parsed by `parseArgs` from `process.argv`
+- The raw args filter explicitly strips `--json-input`, `--paginate`, and `--dry-run` before passing to `parseArgs`, preventing them from being sent as Slack API parameters
 - When both stdin JSON and CLI flags provide the same key, the CLI flag value wins due to spread order: `{ ...stdinParams, ...cliParams }`
 - Non-flag arguments (tokens not starting with `--`) are silently skipped by `parseArgs` -- they do not cause errors
 - Rate limit errors extract `retryAfter` from the `@slack/web-api` error object and include the retry duration in the message

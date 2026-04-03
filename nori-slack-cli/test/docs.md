@@ -32,7 +32,8 @@ Path: @/nori-slack-cli/test
 - `runCli` helper spawns the CLI with `execFile` and captures stdout/stderr/exit code
 - `runCliWithStdin` helper uses `spawn` with piped stdin for `--json-input` tests
 - Tests use fake tokens (`xoxb-fake-token`) which produce real Slack `invalid_auth` errors, proving the full request path works without needing a valid token
-- Validates: no-args usage error, missing token error, `list-methods` output, structured JSON for API failures, stdin JSON input, source path in errors, suggestion text presence, and `--paginate` flag acceptance
+- Validates: no-args usage error, missing token error, `list-methods` output, structured JSON for API failures, stdin JSON input, source path in errors, suggestion text presence, `--paginate` flag acceptance, and `--dry-run` behavior
+- Dry-run tests cover: resolved params output, token-absent reporting, unknown method warnings, `--paginate` flag interaction, and `--json-input` param merging
 
 ### Things to Know
 - Integration tests make real HTTP calls to Slack's API (with invalid tokens), so they require network access
