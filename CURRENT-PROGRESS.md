@@ -1,8 +1,8 @@
 # Current Progress
 
-## Status: Enhanced list-methods
+## Status: Method name fuzzy matching
 
-The nori-slack-cli project has core CLI infrastructure, automatic pagination, dry-run preview, exhaustive method parameter documentation for all 120 known methods, automated build verification, and enhanced method discovery with namespace filtering and descriptions, with 46 passing tests.
+The nori-slack-cli project has core CLI infrastructure, automatic pagination, dry-run preview, exhaustive method parameter documentation for all 120 known methods, automated build verification, enhanced method discovery with namespace filtering and descriptions, and fuzzy method name matching with "did you mean?" suggestions, with 57 passing tests.
 
 ## Completed
 
@@ -70,10 +70,19 @@ The nori-slack-cli project has core CLI infrastructure, automatic pagination, dr
 - **Backward compatible**: Default output (no flags) remains `{ methods: string[] }`
 - **46 tests passing**: 4 new CLI integration tests
 
+### Commit 9: Method name fuzzy matching with "did you mean?" suggestions
+- **`src/suggest.ts`**: New module with `findSimilarMethods()` using Levenshtein distance. Three-tier matching: exact match returns empty, case-insensitive exact match returns correct casing, fuzzy match ranks by edit distance with threshold `max(3, input.length * 0.4)`.
+- **`--dry-run` suggestions**: When method is not in KNOWN_METHODS, dry-run output now includes a `suggestions` array and enriched warning with "Did you mean: X?"
+- **Pre-API-call stderr warning**: When method is not in KNOWN_METHODS, outputs a "Did you mean: X?" warning on stderr before proceeding with the API call (non-blocking — unknown methods may still be valid)
+- **57 tests passing**: 8 new unit tests for suggest module, 3 new CLI integration tests
+
 ## What Works
 - `nori-slack list-methods --namespace chat` (shows only chat.* methods)
 - `nori-slack list-methods --descriptions` (includes method descriptions)
 - `nori-slack list-methods --namespace files --descriptions` (filtered with descriptions)
+- `nori-slack chat.postmesage --dry-run` (suggests `chat.postMessage` in output)
+- `nori-slack CONVERSATIONS.LIST --dry-run` (suggests `conversations.list`)
+- Misspelled methods show "Did you mean: X?" on stderr before API call
 
 ## Next Steps
 - Consider fetching Slack OpenAPI spec for keeping metadata in sync with API changes

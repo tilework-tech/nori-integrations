@@ -25,6 +25,7 @@ Path: @/nori-slack-cli
 - Two discovery subcommands that do not require `SLACK_BOT_TOKEN`: `list-methods` outputs known method names as JSON (supports `--namespace` filtering and `--descriptions` to include method descriptions), and `describe <method>` returns structured parameter documentation (required params, optional params, pagination support, deprecation notices, and docs URL)
 - `describe` uses [src/method-metadata.ts](src/method-metadata.ts), a hand-curated static map covering every method in `KNOWN_METHODS` -- this is static because `@slack/web-api` erases parameter type information at compile time, so runtime introspection is not possible
 - For unknown methods (not in `KNOWN_METHODS`), `getMethodMetadata()` returns a fallback entry with empty params and a generated docs URL, so `describe` never errors; the `known` field in the output distinguishes curated entries from fallbacks
+- When an unknown method is used, [src/suggest.ts](src/suggest.ts) provides fuzzy matching via Levenshtein distance against `KNOWN_METHODS`, surfacing up to 3 "Did you mean?" suggestions in both `--dry-run` JSON output and stderr warnings before API calls; suggestions are non-blocking -- unknown methods still proceed to the API
 - Successful API responses and error responses both go to stdout as JSON; errors additionally write a human-readable line to stderr
 - Exit codes: `0` for success, `1` for API/token errors, `2` for missing args or invalid stdin JSON
 

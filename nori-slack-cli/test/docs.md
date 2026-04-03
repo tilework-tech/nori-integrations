@@ -38,6 +38,10 @@ Path: @/nori-slack-cli/test
 - Validates: no-args usage error, missing token error, `list-methods` output, structured JSON for API failures, stdin JSON input, source path in errors, suggestion text presence, `--paginate` flag acceptance, `--dry-run` behavior, `describe` command behavior, and `list-methods` filtering/description options
 - Describe tests cover: known method metadata output (required/optional params, docs URL), fallback for unknown methods (`known: false`), pagination support flags, deprecation notices, missing argument error, and spot-checks across newly-added namespaces (e.g., `dnd.setSnooze`, `usergroups.create`, `views.open`, `team.info`)
 - `list-methods` tests cover: `--namespace` filtering (verifies all returned methods share the prefix and unrelated methods are excluded), empty namespace returning an empty array, `--descriptions` changing the output shape to objects with `method` and `description` fields, and composition of both flags together
+- Suggestion tests cover: dry-run with misspelled methods verifying `suggestions` array and `warning` field in JSON output, case-correction suggestions, and stderr "Did you mean" warnings before API calls
+
+**`suggest.test.ts`** -- Unit tests for the `findSimilarMethods` function:
+- Verifies exact matches return no suggestions, case-insensitive matches return the correctly-cased method, single-character typos find the right method, nonsense input returns empty, result count respects the `maxResults` parameter, and results are sorted by similarity (closest first)
 
 **`build.test.ts`** -- Build verification tests that exercise the compiled output:
 - `beforeAll` runs `tsc` once; all tests share the resulting `dist/index.js`

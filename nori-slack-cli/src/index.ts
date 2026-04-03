@@ -7,6 +7,7 @@ import { formatError } from './errors.js';
 import { KNOWN_METHODS } from './methods.js';
 import { mergePages } from './paginate.js';
 import { getMethodMetadata, METHOD_METADATA } from './method-metadata.js';
+import { findSimilarMethods } from './suggest.js';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -62,6 +63,12 @@ program
       known: method in METHOD_METADATA,
       ...meta,
     };
+    if (!(method in METHOD_METADATA)) {
+      const suggestions = findSimilarMethods(method);
+      if (suggestions.length > 0) {
+        result.suggestions = suggestions;
+      }
+    }
     process.stdout.write(JSON.stringify(result) + '\n');
   });
 
@@ -122,7 +129,12 @@ program
         paginate: !!opts.paginate,
       };
       if (!KNOWN_METHODS.includes(method)) {
-        dryRunResult.warning = `Method '${method}' is not in the known methods list. It may still be valid.`;
+        const suggestions = findSimilarMethods(method);
+        const didYouMean = suggestions.length > 0 ? ` Did you mean: ${suggestions.join(', ')}?` : '';
+        dryRunResult.warning = `Method '${method}' is not in the known methods list.${didYouMean} It may still be valid.`;
+        if (suggestions.length > 0) {
+          dryRunResult.suggestions = suggestions;
+        }
       }
       process.stdout.write(JSON.stringify(dryRunResult) + '\n');
       return;
@@ -132,6 +144,13 @@ program
       const error = formatError({ code: 'no_token' }, SOURCE_DIR);
       process.stdout.write(JSON.stringify(error) + '\n');
       process.exit(1);
+    }
+
+    if (!KNOWN_METHODS.includes(method)) {
+      const suggestions = findSimilarMethods(method);
+      if (suggestions.length > 0) {
+        process.stderr.write(`Warning: Method '${method}' is not in the known methods list. Did you mean: ${suggestions.join(', ')}?\n`);
+      }
     }
 
     const client = new WebClient(token);

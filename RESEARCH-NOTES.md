@@ -206,6 +206,37 @@ conversations.list, conversations.history, conversations.members, conversations.
 users.list, users.conversations, chat.scheduledMessages.list, reactions.list,
 files.info, files.remote.list, team.accessLogs, team.billableInfo, auth.teams.list
 
+## Method Name Fuzzy Matching / Typo Correction
+
+### Problem
+When an agent misspells a method name (e.g., `chat.postmessage` instead of `chat.postMessage`, or `converations.list` typo), the CLI provides no suggestions. The spec requires "every error should suggest alternatives."
+
+### Approach
+Create `src/suggest.ts` with a `findSimilarMethods()` function:
+1. **Case-insensitive exact match first** — handles `chat.postmessage` → `chat.postMessage` for free
+2. **Levenshtein distance** for fuzzy matching — find methods within a reasonable edit distance
+3. **Threshold** — only suggest methods where `distance <= max(3, method.length * 0.4)` to avoid nonsensical suggestions
+4. **Return top 3** suggestions sorted by distance
+
+### Dependency decision
+Implementing Levenshtein inline (~15 lines). The `fastest-levenshtein` package would also work, but the algorithm is trivial and avoids adding a dependency for a single function.
+
+### Integration points
+1. **`--dry-run` warning** (index.ts lines 124-126) — add suggestions to the warning when method is not in KNOWN_METHODS
+2. **Pre-API-call warning** — when method is not in KNOWN_METHODS, output a stderr warning with suggestions before calling the API
+3. **`method_not_found` error** — add method suggestions to the `formatError` suggestion field via new `SUGGESTIONS.method_not_found` that dynamically computes suggestions
+
+### Output format
+```json
+{
+  "warning": "Method 'chat.postmesage' is not in the known methods list. Did you mean: chat.postMessage?",
+  "suggestions": ["chat.postMessage", "chat.meMessage"]
+}
+```
+
+### Commander.js note
+Commander v13 has `.showSuggestionAfterError()` for subcommands, but our `<method>` argument bypasses that — needs custom implementation.
+
 ## Enhanced `list-methods` with Namespace Grouping and Filtering
 
 ### Problem

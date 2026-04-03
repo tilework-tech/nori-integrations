@@ -270,4 +270,26 @@ describe('CLI integration', () => {
       expect(entry.description.length).toBeGreaterThan(0);
     }
   });
+
+  it('--dry-run with misspelled method includes suggestions in output', async () => {
+    const result = await runCli(
+      ['chat.postmesage', '--dry-run', '--channel', 'C123'],
+      { SLACK_BOT_TOKEN: 'xoxb-test-token' }
+    );
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.dry_run).toBe(true);
+    expect(output.warning).toBeDefined();
+    expect(output.suggestions).toBeDefined();
+    expect(output.suggestions).toContain('chat.postMessage');
+  });
+
+  it('misspelled method shows suggestions on stderr before API call', async () => {
+    const result = await runCli(
+      ['chat.postmesage', '--channel', 'C123', '--text', 'hi'],
+      { SLACK_BOT_TOKEN: 'xoxb-fake-token' }
+    );
+    expect(result.stderr).toContain('Did you mean');
+    expect(result.stderr).toContain('chat.postMessage');
+  });
 });

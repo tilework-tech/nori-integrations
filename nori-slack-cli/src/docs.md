@@ -3,7 +3,7 @@
 Path: @/nori-slack-cli/src
 
 ### Overview
-- Contains all source modules for the CLI: entry point, argument parsing, error formatting, pagination merging, the known-methods catalog, and the method metadata registry
+- Contains all source modules for the CLI: entry point, argument parsing, error formatting, pagination merging, fuzzy method suggestion, the known-methods catalog, and the method metadata registry
 - Compiles from `src/` to `dist/` via TypeScript (ES2022 target, Node16 module resolution)
 
 ### How it fits into the larger codebase
@@ -36,6 +36,12 @@ Path: @/nori-slack-cli/src
 - `formatError(error, sourceDir)` returns a `CliError` object with fields: `ok`, `error`, `message`, `suggestion`, `source`
 - Handles four specific `@slack/web-api` error codes: `slack_webapi_platform_error`, `slack_webapi_rate_limited_error`, `slack_webapi_request_error`, and the custom `no_token`
 - The `SUGGESTIONS` map provides agent-friendly remediation text for common Slack platform errors like `channel_not_found`, `not_in_channel`, `invalid_auth`, `rate_limited`, etc.
+
+**Fuzzy method suggestion (`suggest.ts`)**
+- `findSimilarMethods(input, methods?, maxResults?)` returns up to 3 similar method names from `KNOWN_METHODS` for typo correction
+- Three-tier matching: exact match returns `[]` (no suggestions needed), case-insensitive exact match returns the correctly-cased method as a fast path, then Levenshtein distance ranking with a dynamic threshold of `max(3, floor(input.length * 0.4))`
+- Levenshtein comparison is case-insensitive (both sides lowercased) to maximize match quality
+- Used in `index.ts` at two integration points: the `--dry-run` path adds `suggestions` array and enriched `warning` to the JSON output, and the pre-API-call path emits a stderr warning with "Did you mean: X?"
 
 **Methods catalog (`methods.ts`)**
 - `KNOWN_METHODS` is a static string array of Slack Web API methods available to bot tokens
