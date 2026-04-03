@@ -1,8 +1,8 @@
 # Current Progress
 
-## Status: Method Documentation via `describe` Command
+## Status: Complete Method Metadata for All KNOWN_METHODS
 
-The nori-slack-cli project has core CLI infrastructure, automatic pagination, dry-run preview, and method parameter documentation, with 37 passing tests.
+The nori-slack-cli project has core CLI infrastructure, automatic pagination, dry-run preview, and exhaustive method parameter documentation for all 120 known methods, with 39 passing tests.
 
 ## Completed
 
@@ -40,6 +40,13 @@ The nori-slack-cli project has core CLI infrastructure, automatic pagination, dr
 - **Deprecation notices**: `files.upload` marked deprecated with pointer to `files.getUploadURLExternal` + `files.completeUploadExternal` flow
 - **37 tests passing**: 5 new CLI integration tests for describe command
 
+### Commit 6: Complete method metadata for all KNOWN_METHODS
+- **Exhaustive `describe` coverage**: All 120 methods in KNOWN_METHODS now have curated metadata in `src/method-metadata.ts` — no more fallback responses for any known method
+- **Newly documented namespaces**: api, assistant, auth, bookmarks (edit/list/remove), bots, calls, canvases, chat (remaining 6), conversations (remaining 14), dialog, dnd, emoji, files (remaining 11), migration, pins.list, reactions.get, reminders (remaining 3), team (5), usergroups (7), users (remaining 4), views (4), workflows (3)
+- **Pagination accuracy**: 13 methods correctly marked with `supports_pagination: true`, matching the SDK's CursorPaginationEnabled interface
+- **Coverage guard test**: New `test/method-metadata.test.ts` ensures every KNOWN_METHOD has a non-fallback metadata entry — prevents regressions when new methods are added
+- **39 tests passing**: 1 new unit test, 1 new CLI integration test
+
 ## What Works
 - `nori-slack chat.postMessage --channel C123 --text "hello"` (with valid SLACK_BOT_TOKEN)
 - `nori-slack conversations.list --limit 10`
@@ -51,6 +58,5 @@ The nori-slack-cli project has core CLI infrastructure, automatic pagination, dr
 - Structured error output for missing token, invalid auth, rate limits, network errors
 
 ## Next Steps
-- Build and PATH registration verification (`npm run build` → `npm link`)
-- Add metadata for remaining KNOWN_METHODS (currently ~26 of ~120 methods documented)
-- Consider fetching Slack OpenAPI spec for auto-generating metadata
+- Build and PATH registration verification (`npm run build` → `npm link`) — infrastructure is in place, needs end-to-end verification test
+- Consider fetching Slack OpenAPI spec for keeping metadata in sync with API changes

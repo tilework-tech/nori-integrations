@@ -212,4 +212,16 @@ describe('CLI integration', () => {
     const result = await runCli(['describe']);
     expect(result.exitCode).not.toBe(0);
   });
+
+  it('describe returns known:true for newly-added namespace methods', async () => {
+    const methods = ['dnd.setSnooze', 'usergroups.create', 'views.open', 'team.info'];
+    for (const method of methods) {
+      const result = await runCli(['describe', method]);
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.ok, `${method} should return ok:true`).toBe(true);
+      expect(output.known, `${method} should be known`).toBe(true);
+      expect(output.description, `${method} should have a description`).toBeTruthy();
+    }
+  }, 15000);
 });

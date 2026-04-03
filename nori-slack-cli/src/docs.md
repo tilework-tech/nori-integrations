@@ -3,7 +3,7 @@
 Path: @/nori-slack-cli/src
 
 ### Overview
-- Contains all source modules for the CLI: entry point, argument parsing, error formatting, pagination merging, and the known-methods catalog
+- Contains all source modules for the CLI: entry point, argument parsing, error formatting, pagination merging, the known-methods catalog, and the method metadata registry
 - Compiles from `src/` to `dist/` via TypeScript (ES2022 target, Node16 module resolution)
 
 ### How it fits into the larger codebase
@@ -39,6 +39,13 @@ Path: @/nori-slack-cli/src
 **Methods catalog (`methods.ts`)**
 - `KNOWN_METHODS` is a static string array of Slack Web API methods available to bot tokens
 - Serves as a discoverability aid only; the comment in the file explicitly notes the CLI is not limited to these methods
+
+**Method metadata (`method-metadata.ts`)**
+- `METHOD_METADATA` is a static `Record<string, MethodMetadata>` map providing parameter documentation for every method in `KNOWN_METHODS`
+- Each entry includes: `description`, `required_params`, `optional_params` (both `Record<string, string>` mapping param name to human-readable description), `supports_pagination` (boolean), optional `deprecated` notice, and `docs_url`
+- `getMethodMetadata(method)` looks up the map and returns the entry if present; for unknown methods, it returns a fallback with empty params and a generated docs URL
+- The `docsUrl()` helper constructs URLs in the form `https://api.slack.com/methods/{method}`
+- The `describe` command in [index.ts](index.ts) wraps `getMethodMetadata` output with `ok`, `method`, and `known` fields (where `known` is `true` only when the method has a curated entry in `METHOD_METADATA`)
 
 ### Things to Know
 - `--json-input`, `--paginate`, and `--dry-run` are consumed by Commander as known options; all other flags pass through via `allowUnknownOption()` and are parsed by `parseArgs` from `process.argv`

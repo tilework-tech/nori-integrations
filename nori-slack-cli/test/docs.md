@@ -3,11 +3,11 @@
 Path: @/nori-slack-cli/test
 
 ### Overview
-- Unit tests for `parseArgs`, `formatError`, and `mergePages`, plus integration tests that invoke the CLI as a subprocess
+- Unit tests for `parseArgs`, `formatError`, `mergePages`, and method metadata coverage, plus integration tests that invoke the CLI as a subprocess
 - Uses Vitest as the test runner; integration tests use `tsx` to run the TypeScript source directly (no build step needed)
 
 ### How it fits into the larger codebase
-- Tests cover the pure utility modules in [@/nori-slack-cli/src](../src/): argument parsing, error formatting, and pagination merging
+- Tests cover the pure utility modules in [@/nori-slack-cli/src](../src/): argument parsing, error formatting, pagination merging, and method metadata
 - Integration tests in [cli.test.ts](cli.test.ts) exercise the full CLI binary by spawning `npx tsx src/index.ts` as a child process, verifying end-to-end behavior including exit codes, stdout JSON structure, and stderr output
 - The test directory is excluded from TypeScript compilation via `tsconfig.json`
 
@@ -28,12 +28,15 @@ Path: @/nori-slack-cli/test
 - Uses a `toAsyncIterable` helper to create async iterables from arrays of page objects
 - Verifies array concatenation across pages, preservation of metadata from the last page, handling of empty arrays and single pages
 
+**`method-metadata.test.ts`** -- Coverage guard for method metadata:
+- Asserts that `getMethodMetadata` returns a curated (non-fallback) description for every method in `KNOWN_METHODS`, ensuring new methods added to the catalog also get metadata entries
+
 **`cli.test.ts`** -- Integration tests that run the CLI as a subprocess:
 - `runCli` helper spawns the CLI with `execFile` and captures stdout/stderr/exit code
 - `runCliWithStdin` helper uses `spawn` with piped stdin for `--json-input` tests
 - Tests use fake tokens (`xoxb-fake-token`) which produce real Slack `invalid_auth` errors, proving the full request path works without needing a valid token
-- Validates: no-args usage error, missing token error, `list-methods` output, structured JSON for API failures, stdin JSON input, source path in errors, suggestion text presence, `--paginate` flag acceptance, and `--dry-run` behavior
-- Dry-run tests cover: resolved params output, token-absent reporting, unknown method warnings, `--paginate` flag interaction, and `--json-input` param merging
+- Validates: no-args usage error, missing token error, `list-methods` output, structured JSON for API failures, stdin JSON input, source path in errors, suggestion text presence, `--paginate` flag acceptance, `--dry-run` behavior, and `describe` command behavior
+- Describe tests cover: known method metadata output (required/optional params, docs URL), fallback for unknown methods (`known: false`), pagination support flags, deprecation notices, missing argument error, and spot-checks across newly-added namespaces (e.g., `dnd.setSnooze`, `usergroups.create`, `views.open`, `team.info`)
 
 ### Things to Know
 - Integration tests make real HTTP calls to Slack's API (with invalid tokens), so they require network access

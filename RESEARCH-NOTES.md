@@ -153,3 +153,32 @@ pins.add, pins.remove, bookmarks.add, reminders.add, reminders.list
   "docs_url": "https://api.slack.com/methods/chat.postMessage"
 }
 ```
+
+## Build and PATH Registration (Verified)
+
+- `npm run build` compiles TypeScript → `dist/`, runs `chmod +x dist/index.js && npm link`
+- `npm link` creates a global symlink: `nori-slack` → package's `dist/index.js`
+- Shebang `#!/usr/bin/env node` is already present in `src/index.ts`
+- Verified: after `npm run build`, `which nori-slack` resolves and `nori-slack --version` outputs `0.1.0`
+- No code changes needed — build pipeline already works correctly
+
+## Expanding Method Metadata
+
+### Current state
+- 120 methods in KNOWN_METHODS (`src/methods.ts`)
+- 26 methods have metadata in METHOD_METADATA (`src/method-metadata.ts`)
+- 94 methods missing: api, assistant, auth, bookmarks (edit/list/remove), bots, calls, canvases, chat (remaining), conversations (remaining), dialog, dnd, emoji, files (remaining), migration, pins.list, reactions.get, reminders (remaining), team, usergroups, users (remaining), views, workflows
+
+### Approach
+Add metadata for all remaining KNOWN_METHODS, organized by namespace. Each entry needs:
+- `description`: one-line summary
+- `required_params`: Record<string, string> of required parameters
+- `optional_params`: Record<string, string> of optional parameters
+- `supports_pagination`: boolean (true for methods in the CursorPaginationEnabled list)
+- `deprecated?`: deprecation notice if applicable
+- `docs_url`: generated from `docsUrl()` helper
+
+### Pagination-supporting methods (from SDK)
+conversations.list, conversations.history, conversations.members, conversations.replies,
+users.list, users.conversations, chat.scheduledMessages.list, reactions.list,
+files.info, files.remote.list, team.accessLogs, team.billableInfo, auth.teams.list
