@@ -8,6 +8,7 @@ Path: @/nori-slack-cli
 - Uses `@slack/web-api` WebClient for dynamic dispatch -- the CLI is not limited to a fixed set of methods
 - Supports automatic cursor pagination via `--paginate`, which fetches all pages and returns a single merged JSON response
 - Supports `--dry-run` to preview resolved API requests without sending them -- designed as a safety net for coding agents to validate parameter resolution
+- Supports `describe <method>` to look up parameter documentation for any Slack API method without requiring a token -- enables agents to discover required/optional params before making calls
 
 ### How it fits into the larger codebase
 - Lives as a standalone tool under the `nori-integrations` monorepo, in the `slack` worktree
@@ -21,7 +22,9 @@ Path: @/nori-slack-cli
 - Entry point is [src/index.ts](src/index.ts), which uses Commander.js with `allowUnknownOption()` so arbitrary `--flag value` pairs pass through without Commander rejecting them
 - The dynamic handler has three code paths: `--dry-run` short-circuits after param resolution (no token required, no API call), `--paginate` triggers `WebClient.paginate()` + `mergePages()`, and the default path uses `WebClient.apiCall()`
 - Two input modes: CLI flags (`--channel C123 --text "hi"`) and piped JSON via `--json-input`; when both are provided, CLI flags override stdin values
-- `list-methods` is a separate subcommand that dumps the known methods list as JSON -- but the CLI accepts any method string, not just known ones
+- Two discovery subcommands that do not require `SLACK_BOT_TOKEN`: `list-methods` dumps the known method names as JSON, and `describe <method>` returns structured parameter documentation (required params, optional params, pagination support, deprecation notices, and docs URL)
+- `describe` uses [src/method-metadata.ts](src/method-metadata.ts), a hand-curated static map of method metadata -- this is static because `@slack/web-api` erases parameter type information at compile time, so runtime introspection is not possible
+- For unknown methods, `getMethodMetadata()` returns a fallback entry with empty params and a generated docs URL, so `describe` never errors
 - Successful API responses and error responses both go to stdout as JSON; errors additionally write a human-readable line to stderr
 - Exit codes: `0` for success, `1` for API/token errors, `2` for missing args or invalid stdin JSON
 
@@ -31,6 +34,7 @@ Path: @/nori-slack-cli
 - A standalone `--flag` with no following value (or followed by another `--flag`) is treated as boolean `true`
 - Error formatting in [src/errors.ts](src/errors.ts) maps Slack error codes to actionable suggestions (e.g., `channel_not_found` suggests running `conversations.list`); unknown errors get a generic suggestion pointing to the source directory
 - Every error response includes a `source` field with the filesystem path to the CLI, so agents can locate the source code for debugging
+- The method metadata in [src/method-metadata.ts](src/method-metadata.ts) marks `files.upload` as deprecated with a pointer to the two-step `files.getUploadURLExternal` + `files.completeUploadExternal` flow
 - The `postbuild` script runs `chmod +x` on the output and `npm link` to make the binary available immediately after build
 
 Created and maintained by Nori.

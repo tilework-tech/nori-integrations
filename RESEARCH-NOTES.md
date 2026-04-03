@@ -103,3 +103,53 @@ Structured JSON matching existing conventions:
 Per APPLICATION-SPEC.md: "When complete, move the APPLICATION-SPEC.md and any other spec md files to a nori-slack-cli/spec folder."
 - Create `nori-slack-cli/spec/` directory
 - Move APPLICATION-SPEC.md into it
+
+## `describe <method>` Command Design
+
+### Problem
+Agents need to know what parameters a Slack API method accepts before calling it. Currently the only discovery is `list-methods` which just lists names.
+
+### Runtime metadata availability
+- `@slack/web-api` has NO runtime parameter metadata — only TypeScript `.d.ts` files
+- The `.js` files for request types are empty stubs (interfaces erased at compile time)
+- Slack publishes OpenAPI specs on GitHub but they are not bundled with the npm package
+
+### Approach: Static method metadata map
+Create `src/method-metadata.ts` with a hand-curated map of commonly used methods and their parameters. Structure:
+```typescript
+interface MethodMetadata {
+  description: string;
+  required: Record<string, string>; // param name -> type/description
+  optional: Record<string, string>;
+  supports_pagination?: boolean;
+  deprecated?: string; // deprecation message
+}
+```
+
+For methods not in the map, output a helpful fallback pointing to Slack API docs URL.
+
+### Methods to document (high-value for agents)
+chat.postMessage, chat.update, chat.delete, conversations.list, conversations.history,
+conversations.create, conversations.invite, conversations.info, conversations.members,
+conversations.replies, reactions.add, reactions.remove, users.list, users.info,
+files.getUploadURLExternal, files.completeUploadExternal, files.upload (deprecated notice),
+pins.add, pins.remove, bookmarks.add, reminders.add, reminders.list
+
+### Key finding: files.upload deprecated
+`files.upload` stopped working Nov 2025. Replaced by two-step flow:
+1. `files.getUploadURLExternal` (filename, length) → returns upload URL + file_id
+2. Upload file content to the URL via HTTP PUT
+3. `files.completeUploadExternal` (files array) → finishes and shares the file
+
+### Output format for `describe`
+```json
+{
+  "ok": true,
+  "method": "chat.postMessage",
+  "description": "Sends a message to a channel.",
+  "required_params": { "channel": "Channel ID (e.g., C1234567890)" },
+  "optional_params": { "text": "Message text", "blocks": "Array of Block Kit blocks (JSON)" },
+  "supports_pagination": false,
+  "docs_url": "https://api.slack.com/methods/chat.postMessage"
+}
+```

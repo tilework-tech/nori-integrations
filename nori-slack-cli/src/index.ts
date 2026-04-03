@@ -6,6 +6,7 @@ import { parseArgs } from './parse-args.js';
 import { formatError } from './errors.js';
 import { KNOWN_METHODS } from './methods.js';
 import { mergePages } from './paginate.js';
+import { getMethodMetadata, METHOD_METADATA } from './method-metadata.js';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -24,6 +25,20 @@ program
   .description('List all known Slack Web API methods')
   .action(() => {
     process.stdout.write(JSON.stringify({ methods: KNOWN_METHODS }) + '\n');
+  });
+
+program
+  .command('describe <method>')
+  .description('Show parameter documentation for a Slack API method. Example: nori-slack describe chat.postMessage')
+  .action((method: string) => {
+    const meta = getMethodMetadata(method);
+    const result: Record<string, unknown> = {
+      ok: true,
+      method,
+      known: method in METHOD_METADATA,
+      ...meta,
+    };
+    process.stdout.write(JSON.stringify(result) + '\n');
   });
 
 program

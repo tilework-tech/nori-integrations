@@ -1,8 +1,8 @@
 # Current Progress
 
-## Status: Dry-Run Support + Spec Relocation
+## Status: Method Documentation via `describe` Command
 
-The nori-slack-cli project has core CLI infrastructure, automatic pagination, and dry-run preview, with 32 passing tests.
+The nori-slack-cli project has core CLI infrastructure, automatic pagination, dry-run preview, and method parameter documentation, with 37 passing tests.
 
 ## Completed
 
@@ -32,15 +32,25 @@ The nori-slack-cli project has core CLI infrastructure, automatic pagination, an
 - **Spec relocation**: Moved APPLICATION-SPEC.md to nori-slack-cli/spec/ per spec requirements
 - **32 tests passing**: 5 new dry-run CLI integration tests
 
+### Commit 5: `describe <method>` command for parameter documentation
+- **`describe <method>` subcommand**: Outputs structured JSON with method description, required/optional params, pagination support, deprecation notices, and docs URL
+- **Static metadata map**: `src/method-metadata.ts` with hand-curated documentation for ~26 high-value methods (no runtime introspection possible — `@slack/web-api` erases type info at compile time)
+- **Fallback for unknown methods**: Returns a helpful response with empty params and generated Slack docs URL
+- **No token required**: `describe` is a documentation lookup, does not need SLACK_BOT_TOKEN
+- **Deprecation notices**: `files.upload` marked deprecated with pointer to `files.getUploadURLExternal` + `files.completeUploadExternal` flow
+- **37 tests passing**: 5 new CLI integration tests for describe command
+
 ## What Works
 - `nori-slack chat.postMessage --channel C123 --text "hello"` (with valid SLACK_BOT_TOKEN)
 - `nori-slack conversations.list --limit 10`
 - `nori-slack conversations.list --paginate` (fetches all pages automatically)
 - `echo '{"channel":"C123","text":"hi"}' | nori-slack chat.postMessage --json-input`
 - `nori-slack chat.postMessage --dry-run --channel C123 --text "hello"` (previews request)
+- `nori-slack describe chat.postMessage` (shows required/optional params)
 - `nori-slack list-methods`
 - Structured error output for missing token, invalid auth, rate limits, network errors
 
 ## Next Steps
 - Build and PATH registration verification (`npm run build` → `npm link`)
-- Additional help text improvements for agent consumption
+- Add metadata for remaining KNOWN_METHODS (currently ~26 of ~120 methods documented)
+- Consider fetching Slack OpenAPI spec for auto-generating metadata

@@ -168,4 +168,48 @@ describe('CLI integration', () => {
     expect(output.params.text).toBe('from stdin');
     expect(output.params.thread_ts).toBe('123.456');
   });
+
+  it('describe outputs method metadata for a known method', async () => {
+    const result = await runCli(['describe', 'chat.postMessage']);
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.ok).toBe(true);
+    expect(output.method).toBe('chat.postMessage');
+    expect(output.known).toBe(true);
+    expect(output.description).toBeTruthy();
+    expect(output.required_params).toHaveProperty('channel');
+    expect(output.optional_params).toHaveProperty('text');
+    expect(output.docs_url).toContain('chat.postMessage');
+  });
+
+  it('describe returns fallback for unknown method', async () => {
+    const result = await runCli(['describe', 'fake.unknown']);
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.ok).toBe(true);
+    expect(output.method).toBe('fake.unknown');
+    expect(output.known).toBe(false);
+    expect(output.description).toContain('No detailed documentation');
+    expect(output.docs_url).toContain('fake.unknown');
+  });
+
+  it('describe shows pagination support for paginated methods', async () => {
+    const result = await runCli(['describe', 'conversations.list']);
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.supports_pagination).toBe(true);
+  });
+
+  it('describe shows deprecation notice for deprecated methods', async () => {
+    const result = await runCli(['describe', 'files.upload']);
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.deprecated).toBeTruthy();
+    expect(output.deprecated).toContain('files.getUploadURLExternal');
+  });
+
+  it('describe without method argument exits with error', async () => {
+    const result = await runCli(['describe']);
+    expect(result.exitCode).not.toBe(0);
+  });
 });
