@@ -1,8 +1,8 @@
 # Current Progress
 
-## Status: Complete Method Metadata for All KNOWN_METHODS
+## Status: Build Verification Tests
 
-The nori-slack-cli project has core CLI infrastructure, automatic pagination, dry-run preview, and exhaustive method parameter documentation for all 120 known methods, with 39 passing tests.
+The nori-slack-cli project has core CLI infrastructure, automatic pagination, dry-run preview, exhaustive method parameter documentation for all 120 known methods, and automated build verification, with 42 passing tests.
 
 ## Completed
 
@@ -57,6 +57,11 @@ The nori-slack-cli project has core CLI infrastructure, automatic pagination, dr
 - `nori-slack list-methods`
 - Structured error output for missing token, invalid auth, rate limits, network errors
 
+### Commit 7: Build verification tests
+- **`test/build.test.ts`**: New test file that compiles the project via `tsc` in `beforeAll`, then exercises the compiled `dist/index.js` directly via `node`
+- **3 tests**: Verifies `--version` output matches package version, `list-methods` returns valid JSON with 120+ methods, and no-args invocation exits non-zero with usage help
+- **Distinct from `cli.test.ts`**: Build tests run the compiled JavaScript artifact; CLI tests run TypeScript source via `tsx`
+- **42 tests passing**: 3 new build verification tests
+
 ## Next Steps
-- Build and PATH registration verification (`npm run build` → `npm link`) — infrastructure is in place, needs end-to-end verification test
 - Consider fetching Slack OpenAPI spec for keeping metadata in sync with API changes

@@ -4,7 +4,7 @@ Path: @/nori-slack-cli/test
 
 ### Overview
 - Unit tests for `parseArgs`, `formatError`, `mergePages`, and method metadata coverage, plus integration tests that invoke the CLI as a subprocess
-- Uses Vitest as the test runner; integration tests use `tsx` to run the TypeScript source directly (no build step needed)
+- Uses Vitest as the test runner; integration tests in `cli.test.ts` use `tsx` to run TypeScript source directly, while `build.test.ts` compiles via `tsc` and runs the built `dist/index.js` artifact
 
 ### How it fits into the larger codebase
 - Tests cover the pure utility modules in [@/nori-slack-cli/src](../src/): argument parsing, error formatting, pagination merging, and method metadata
@@ -37,6 +37,11 @@ Path: @/nori-slack-cli/test
 - Tests use fake tokens (`xoxb-fake-token`) which produce real Slack `invalid_auth` errors, proving the full request path works without needing a valid token
 - Validates: no-args usage error, missing token error, `list-methods` output, structured JSON for API failures, stdin JSON input, source path in errors, suggestion text presence, `--paginate` flag acceptance, `--dry-run` behavior, and `describe` command behavior
 - Describe tests cover: known method metadata output (required/optional params, docs URL), fallback for unknown methods (`known: false`), pagination support flags, deprecation notices, missing argument error, and spot-checks across newly-added namespaces (e.g., `dnd.setSnooze`, `usergroups.create`, `views.open`, `team.info`)
+
+**`build.test.ts`** -- Build verification tests that exercise the compiled output:
+- `beforeAll` runs `tsc` once; all tests share the resulting `dist/index.js`
+- Uses `node dist/index.js` directly (unlike `cli.test.ts` which uses `npx tsx src/index.ts`), verifying the actual build artifact that `npm link` would expose
+- Validates `--version` output, `list-methods` JSON structure, and no-args usage error exit code
 
 ### Things to Know
 - Integration tests make real HTTP calls to Slack's API (with invalid tokens), so they require network access

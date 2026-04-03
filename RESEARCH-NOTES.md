@@ -162,6 +162,29 @@ pins.add, pins.remove, bookmarks.add, reminders.add, reminders.list
 - Verified: after `npm run build`, `which nori-slack` resolves and `nori-slack --version` outputs `0.1.0`
 - No code changes needed — build pipeline already works correctly
 
+## Build Verification Test
+
+### Goal
+Automated test that verifies the TypeScript build produces a working CLI binary.
+
+### What to test
+1. `tsc` compiles without errors
+2. `dist/index.js` exists and starts with `#!/usr/bin/env node` shebang
+3. The compiled binary responds to `--version` with `0.1.0`
+4. The compiled binary responds to `list-methods` with valid JSON
+5. The compiled binary responds to `--help` with usage information
+
+### Key decisions
+- **Run `tsc` directly, not `npm run build`**: The `postbuild` script runs `npm link` which creates global symlinks — inappropriate for automated tests and may require elevated permissions
+- **Use `node dist/index.js` to execute**: Avoids dependency on PATH registration; tests the compiled output directly
+- **Separate test file**: `test/build.test.ts` — build tests are slower (involves `tsc` compilation) and conceptually distinct from CLI behavior tests
+- **Single `tsc` invocation**: Run build once in a `beforeAll`, then assert multiple properties — avoids recompiling for each test
+- **Check file permissions with `fs.stat`**: On Unix, verify the executable bit is set after compilation
+
+### Timeout considerations
+- `tsc` compilation takes a few seconds; use 30s timeout on the build step
+- Individual assertions after build are fast (< 1s each)
+
 ## Expanding Method Metadata
 
 ### Current state
