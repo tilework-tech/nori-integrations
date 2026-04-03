@@ -3,20 +3,25 @@
 Path: @/nori-slack-cli/src
 
 ### Overview
-- Contains all source modules for the CLI: entry point, argument parsing, error formatting, and the known-methods catalog
+- Contains all source modules for the CLI: entry point, argument parsing, error formatting, pagination merging, and the known-methods catalog
 - Compiles from `src/` to `dist/` via TypeScript (ES2022 target, Node16 module resolution)
 
 ### How it fits into the larger codebase
 - [index.ts](index.ts) is the CLI entry point (shebang `#!/usr/bin/env node`), compiled to `dist/index.js` and exposed as the `nori-slack` binary via `package.json` `bin` field
-- [parse-args.ts](parse-args.ts) and [errors.ts](errors.ts) are pure utility modules with no side effects -- they are independently testable and tested in [@/nori-slack-cli/test](../test/)
+- [parse-args.ts](parse-args.ts), [errors.ts](errors.ts), and [paginate.ts](paginate.ts) are pure utility modules with no side effects -- they are independently testable and tested in [@/nori-slack-cli/test](../test/)
 - [methods.ts](methods.ts) is a static data file; it is only used by the `list-methods` subcommand and has no effect on which methods the CLI can actually call
 
 ### Core Implementation
 
 **Entry point (`index.ts`)**
 - Sets up Commander with two code paths: `list-methods` subcommand and the default dynamic method handler
-- The dynamic handler: validates `SLACK_BOT_TOKEN` env var, optionally reads JSON from stdin, parses CLI flags, merges params (CLI flags win over stdin), calls `WebClient.apiCall()`, writes result JSON to stdout
+- The dynamic handler: validates `SLACK_BOT_TOKEN` env var, optionally reads JSON from stdin, parses CLI flags, merges params (CLI flags win over stdin), then branches: `--paginate` triggers `client.paginate()` + `mergePages()`, otherwise `client.apiCall()`; writes result JSON to stdout
 - When no arguments are provided (`process.argv.length <= 2`), help text and error go to stderr and the process exits with code 2
+
+**Pagination merging (`paginate.ts`)**
+- `mergePages(pages)` takes an `AsyncIterable` of page objects and returns a single merged object
+- Array-valued keys are concatenated across pages; scalar/metadata keys (`ok`, `response_metadata`, `headers`, `warning`) are overwritten with the last page's value
+- This design means the function works generically with any Slack method's response shape -- it does not need to know which key holds the data (e.g., `channels`, `members`, `messages`)
 
 **Argument parsing (`parse-args.ts`)**
 - `parseArgs(argv)` walks the args array linearly, handling three patterns: `--key value`, `--key=value`, and standalone `--flag` (boolean true)
@@ -33,7 +38,8 @@ Path: @/nori-slack-cli/src
 - Serves as a discoverability aid only; the comment in the file explicitly notes the CLI is not limited to these methods
 
 ### Things to Know
-- The `--json-input` flag is consumed by Commander as a known option; all other flags pass through via `allowUnknownOption()` and are parsed by `parseArgs` from `command.args`
+- Both `--json-input` and `--paginate` are consumed by Commander as known options; all other flags pass through via `allowUnknownOption()` and are parsed by `parseArgs` from `process.argv`
+- The raw args filter explicitly strips `--json-input` and `--paginate` before passing to `parseArgs`, preventing them from being sent as Slack API parameters
 - When both stdin JSON and CLI flags provide the same key, the CLI flag value wins due to spread order: `{ ...stdinParams, ...cliParams }`
 - Non-flag arguments (tokens not starting with `--`) are silently skipped by `parseArgs` -- they do not cause errors
 - Rate limit errors extract `retryAfter` from the `@slack/web-api` error object and include the retry duration in the message

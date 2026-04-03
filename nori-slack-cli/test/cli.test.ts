@@ -81,6 +81,16 @@ describe('CLI integration', () => {
     expect(output.suggestion.length).toBeGreaterThan(0);
   });
 
+  it('accepts --paginate flag and returns structured error with fake token', async () => {
+    const result = await runCli(
+      ['conversations.list', '--paginate'],
+      { SLACK_BOT_TOKEN: 'xoxb-fake-token' }
+    );
+    const output = JSON.parse(result.stdout);
+    expect(output.ok).toBe(false);
+    expect(output.error).toBe('invalid_auth');
+  });
+
   it('reads JSON from stdin via --json-input and processes it', async () => {
     const jsonInput = JSON.stringify({ channel: 'C123', text: 'from stdin' });
     const result = await runCliWithStdin(

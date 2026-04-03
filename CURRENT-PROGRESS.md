@@ -1,8 +1,8 @@
 # Current Progress
 
-## Status: Core CLI Implemented
+## Status: Pagination Support Added
 
-The nori-slack-cli project is scaffolded and the core CLI infrastructure is working with 23 passing tests.
+The nori-slack-cli project has core CLI infrastructure plus automatic pagination, with 27 passing tests.
 
 ## Completed
 
@@ -19,9 +19,16 @@ The nori-slack-cli project is scaffolded and the core CLI infrastructure is work
 - **Agent-friendly output**: JSON-only stdout, human messages on stderr, exit codes (0/1/2)
 - **23 tests passing**: 10 parse-args unit, 6 error formatting unit, 7 CLI integration
 
+### Commit 3: Automatic pagination support
+- **`--paginate` flag**: Automatically fetches all pages of cursor-paginated results and merges into a single response
+- **`mergePages()` function**: Pure function in `src/paginate.ts` — iterates async iterable of pages, concatenates array fields, preserves scalar values from last page
+- **Leverages `WebClient.paginate()`**: Uses the SDK's built-in cursor pagination — no manual cursor management
+- **27 tests passing**: 5 new paginate unit tests, 1 new CLI integration test
+
 ## What Works
 - `nori-slack chat.postMessage --channel C123 --text "hello"` (with valid SLACK_BOT_TOKEN)
 - `nori-slack conversations.list --limit 10`
+- `nori-slack conversations.list --paginate` (fetches all pages automatically)
 - `echo '{"channel":"C123","text":"hi"}' | nori-slack chat.postMessage --json-input`
 - `nori-slack list-methods`
 - Structured error output for missing token, invalid auth, rate limits, network errors
@@ -29,5 +36,4 @@ The nori-slack-cli project is scaffolded and the core CLI infrastructure is work
 ## Next Steps
 - Build and PATH registration (`npm run build` → `npm link`)
 - Move APPLICATION-SPEC.md to nori-slack-cli/spec/ as spec says
-- Consider adding `--paginate` convenience flag for cursor-based pagination
 - Consider adding `--dry-run` flag for input validation without API calls

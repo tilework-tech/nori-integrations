@@ -5,6 +5,7 @@ import { WebClient } from '@slack/web-api';
 import { parseArgs } from './parse-args.js';
 import { formatError } from './errors.js';
 import { KNOWN_METHODS } from './methods.js';
+import { mergePages } from './paginate.js';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -28,6 +29,7 @@ program
 program
   .argument('<method>', 'Slack Web API method (e.g., chat.postMessage)')
   .option('--json-input', 'Read parameters as JSON from stdin')
+  .option('--paginate', 'Automatically fetch all pages and merge results')
   .allowUnknownOption(true)
   .allowExcessArguments(true)
   .action(async (method: string, opts: Record<string, any>) => {
@@ -72,12 +74,17 @@ program
 
     // Parse CLI args directly from process.argv, skipping node, script, and method
     const methodIndex = process.argv.indexOf(method);
-    const rawArgs = methodIndex >= 0 ? process.argv.slice(methodIndex + 1).filter(a => a !== '--json-input') : [];
+    const rawArgs = methodIndex >= 0 ? process.argv.slice(methodIndex + 1).filter(a => a !== '--json-input' && a !== '--paginate') : [];
     const cliParams = parseArgs(rawArgs);
     params = { ...params, ...cliParams };
 
     try {
-      const result = await client.apiCall(method, params);
+      let result;
+      if (opts.paginate) {
+        result = await mergePages(client.paginate(method, params));
+      } else {
+        result = await client.apiCall(method, params);
+      }
       process.stdout.write(JSON.stringify(result) + '\n');
     } catch (err) {
       const error = formatError(err, SOURCE_DIR);

@@ -3,11 +3,11 @@
 Path: @/nori-slack-cli/test
 
 ### Overview
-- Unit tests for `parseArgs` and `formatError`, plus integration tests that invoke the CLI as a subprocess
+- Unit tests for `parseArgs`, `formatError`, and `mergePages`, plus integration tests that invoke the CLI as a subprocess
 - Uses Vitest as the test runner; integration tests use `tsx` to run the TypeScript source directly (no build step needed)
 
 ### How it fits into the larger codebase
-- Tests cover the two pure utility modules in [@/nori-slack-cli/src](../src/): argument parsing and error formatting
+- Tests cover the pure utility modules in [@/nori-slack-cli/src](../src/): argument parsing, error formatting, and pagination merging
 - Integration tests in [cli.test.ts](cli.test.ts) exercise the full CLI binary by spawning `npx tsx src/index.ts` as a child process, verifying end-to-end behavior including exit codes, stdout JSON structure, and stderr output
 - The test directory is excluded from TypeScript compilation via `tsconfig.json`
 
@@ -24,11 +24,15 @@ Path: @/nori-slack-cli/test
 - Network errors surface the underlying error message
 - Missing token errors suggest setting `SLACK_BOT_TOKEN`
 
+**`paginate.test.ts`** -- Unit tests for the `mergePages` function:
+- Uses a `toAsyncIterable` helper to create async iterables from arrays of page objects
+- Verifies array concatenation across pages, preservation of metadata from the last page, handling of empty arrays and single pages
+
 **`cli.test.ts`** -- Integration tests that run the CLI as a subprocess:
 - `runCli` helper spawns the CLI with `execFile` and captures stdout/stderr/exit code
 - `runCliWithStdin` helper uses `spawn` with piped stdin for `--json-input` tests
 - Tests use fake tokens (`xoxb-fake-token`) which produce real Slack `invalid_auth` errors, proving the full request path works without needing a valid token
-- Validates: no-args usage error, missing token error, `list-methods` output, structured JSON for API failures, stdin JSON input, source path in errors, and suggestion text presence
+- Validates: no-args usage error, missing token error, `list-methods` output, structured JSON for API failures, stdin JSON input, source path in errors, suggestion text presence, and `--paginate` flag acceptance
 
 ### Things to Know
 - Integration tests make real HTTP calls to Slack's API (with invalid tokens), so they require network access

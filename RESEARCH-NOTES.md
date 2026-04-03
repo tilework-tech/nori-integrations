@@ -46,3 +46,32 @@ assistant, functions, workflows, migration, rtm
 
 admin.*, search.*, stars.*, users.profile.set, users.deletePhoto,
 users.setPhoto, users.identity
+
+## Pagination in @slack/web-api
+
+### `client.paginate()` API
+- Three overloads: (1) async iterable, (2) shouldStop predicate, (3) shouldStop + reduce
+- `paginate(method, options)` returns `AsyncIterable<WebAPICallResult>` — iterate with `for await`
+- Does NOT auto-merge results — each page is a separate response object
+- Default page size: 200. If `options.limit` is set, it becomes the page size
+
+### How cursor pagination works
+- Response includes `response_metadata.next_cursor` when more pages exist
+- Pagination ends when `next_cursor` is `undefined` or `''`
+- `paginationOptionsForNextPage()` helper returns `{ limit, cursor }` or `undefined`
+
+### Methods supporting cursor pagination (from CursorPaginationEnabled interface)
+conversations.list, conversations.history, conversations.members, conversations.replies,
+users.list, users.conversations, chat.scheduledMessages.list, reactions.list,
+files.info, files.remote.list, team.accessLogs, team.billableInfo, auth.teams.list
+
+### Response data keys vary by method
+- conversations.list → `channels`
+- users.list → `members`
+- conversations.history → `messages`
+- reactions.list → `items`
+
+### Approach for --paginate flag
+Use `for await (const page of client.paginate(method, params))` to iterate all pages.
+For each page, find array-valued keys (excluding `ok`, `response_metadata`, `headers`, etc.)
+and concatenate them across pages. Return a single merged response object.
