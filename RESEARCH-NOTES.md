@@ -205,3 +205,34 @@ Add metadata for all remaining KNOWN_METHODS, organized by namespace. Each entry
 conversations.list, conversations.history, conversations.members, conversations.replies,
 users.list, users.conversations, chat.scheduledMessages.list, reactions.list,
 files.info, files.remote.list, team.accessLogs, team.billableInfo, auth.teams.list
+
+## Enhanced `list-methods` with Namespace Grouping and Filtering
+
+### Problem
+Currently `list-methods` outputs a flat JSON array of 120 method names. An agent has no context about what each method does without calling `describe` individually for each one. This makes method discovery tedious.
+
+### Approach
+Add options to the `list-methods` command:
+- `--namespace <ns>`: Filter methods to a specific namespace prefix (e.g., `--namespace chat` shows only `chat.*` methods)
+- `--descriptions`: Include method description from METHOD_METADATA alongside each method name
+
+### Output format decisions
+- Default (no flags): Keep current `{ methods: string[] }` for backward compatibility
+- With `--descriptions`: Change to `{ methods: Array<{ method: string, description: string }> }` — richer objects instead of plain strings
+- With `--namespace <ns>`: Filter the methods array to only matching namespace, add `namespace` field to response
+- Both flags compose: `--namespace chat --descriptions` returns filtered methods with descriptions
+
+### Commander.js v13 pattern
+Commander v13 supports `.option()` chained on subcommands. Options are passed to the action callback as first arg (since no positional args).
+```typescript
+.command('list-methods')
+.option('--namespace <ns>', 'Filter by namespace')
+.option('--descriptions', 'Include descriptions')
+.action((opts) => { /* opts.namespace, opts.descriptions */ })
+```
+
+### Namespace extraction
+Method names are dot-delimited. The namespace is the first segment: `chat.postMessage` → `chat`, `conversations.history` → `conversations`. Extract via `method.split('.')[0]`.
+
+### Descriptions source
+All 120 KNOWN_METHODS have entries in METHOD_METADATA (verified by existing coverage guard test). Use `getMethodMetadata(method).description` to get descriptions.

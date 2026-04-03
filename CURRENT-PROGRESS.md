@@ -1,8 +1,8 @@
 # Current Progress
 
-## Status: Build Verification Tests
+## Status: Enhanced list-methods
 
-The nori-slack-cli project has core CLI infrastructure, automatic pagination, dry-run preview, exhaustive method parameter documentation for all 120 known methods, and automated build verification, with 42 passing tests.
+The nori-slack-cli project has core CLI infrastructure, automatic pagination, dry-run preview, exhaustive method parameter documentation for all 120 known methods, automated build verification, and enhanced method discovery with namespace filtering and descriptions, with 46 passing tests.
 
 ## Completed
 
@@ -62,6 +62,18 @@ The nori-slack-cli project has core CLI infrastructure, automatic pagination, dr
 - **3 tests**: Verifies `--version` output matches package version, `list-methods` returns valid JSON with 120+ methods, and no-args invocation exits non-zero with usage help
 - **Distinct from `cli.test.ts`**: Build tests run the compiled JavaScript artifact; CLI tests run TypeScript source via `tsx`
 - **42 tests passing**: 3 new build verification tests
+
+### Commit 8: Enhanced list-methods with namespace filtering and descriptions
+- **`--namespace <ns>` flag**: Filters methods by API namespace prefix (e.g., `list-methods --namespace chat` returns only `chat.*` methods). Response includes a `namespace` field.
+- **`--descriptions` flag**: Includes method descriptions from METHOD_METADATA alongside each method name. Output changes from `string[]` to `Array<{ method, description }>`.
+- **Flags compose**: `list-methods --namespace conversations --descriptions` returns filtered methods with descriptions
+- **Backward compatible**: Default output (no flags) remains `{ methods: string[] }`
+- **46 tests passing**: 4 new CLI integration tests
+
+## What Works
+- `nori-slack list-methods --namespace chat` (shows only chat.* methods)
+- `nori-slack list-methods --descriptions` (includes method descriptions)
+- `nori-slack list-methods --namespace files --descriptions` (filtered with descriptions)
 
 ## Next Steps
 - Consider fetching Slack OpenAPI spec for keeping metadata in sync with API changes

@@ -224,4 +224,50 @@ describe('CLI integration', () => {
       expect(output.description, `${method} should have a description`).toBeTruthy();
     }
   }, 15000);
+
+  it('list-methods --namespace filters to matching methods only', async () => {
+    const result = await runCli(['list-methods', '--namespace', 'chat']);
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.namespace).toBe('chat');
+    expect(output.methods.length).toBeGreaterThan(0);
+    for (const method of output.methods) {
+      expect(method).toMatch(/^chat\./);
+    }
+    expect(output.methods).toContain('chat.postMessage');
+    expect(output.methods).not.toContain('conversations.list');
+  });
+
+  it('list-methods --namespace with no matches returns empty array', async () => {
+    const result = await runCli(['list-methods', '--namespace', 'nonexistent']);
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.namespace).toBe('nonexistent');
+    expect(output.methods).toEqual([]);
+  });
+
+  it('list-methods --descriptions includes method descriptions', async () => {
+    const result = await runCli(['list-methods', '--descriptions']);
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.methods.length).toBeGreaterThan(10);
+    const chatPost = output.methods.find((e: any) => e.method === 'chat.postMessage');
+    expect(chatPost).toBeDefined();
+    expect(chatPost.description.length).toBeGreaterThan(0);
+    const convList = output.methods.find((e: any) => e.method === 'conversations.list');
+    expect(convList).toBeDefined();
+    expect(convList.description.length).toBeGreaterThan(0);
+  });
+
+  it('list-methods --namespace and --descriptions compose together', async () => {
+    const result = await runCli(['list-methods', '--namespace', 'conversations', '--descriptions']);
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.namespace).toBe('conversations');
+    expect(output.methods.length).toBeGreaterThan(0);
+    for (const entry of output.methods) {
+      expect(entry.method).toMatch(/^conversations\./);
+      expect(entry.description.length).toBeGreaterThan(0);
+    }
+  });
 });

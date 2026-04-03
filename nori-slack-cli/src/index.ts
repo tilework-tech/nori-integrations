@@ -22,9 +22,33 @@ program
 
 program
   .command('list-methods')
-  .description('List all known Slack Web API methods')
-  .action(() => {
-    process.stdout.write(JSON.stringify({ methods: KNOWN_METHODS }) + '\n');
+  .description('List all known Slack Web API methods. Use --namespace to filter by API namespace (e.g., chat, conversations). Use --descriptions to include method descriptions.')
+  .option('--namespace <ns>', 'Filter methods by namespace prefix (e.g., "chat", "conversations", "files")')
+  .option('--descriptions', 'Include a short description for each method')
+  .action((opts: { namespace?: string; descriptions?: boolean }) => {
+    let methods = KNOWN_METHODS;
+
+    if (opts.namespace) {
+      const prefix = opts.namespace + '.';
+      methods = methods.filter(m => m.startsWith(prefix));
+    }
+
+    const result: Record<string, unknown> = {};
+
+    if (opts.descriptions) {
+      result.methods = methods.map(m => ({
+        method: m,
+        description: getMethodMetadata(m).description,
+      }));
+    } else {
+      result.methods = methods;
+    }
+
+    if (opts.namespace) {
+      result.namespace = opts.namespace;
+    }
+
+    process.stdout.write(JSON.stringify(result) + '\n');
   });
 
 program

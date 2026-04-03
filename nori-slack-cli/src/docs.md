@@ -14,12 +14,13 @@ Path: @/nori-slack-cli/src
 ### Core Implementation
 
 **Entry point (`index.ts`)**
-- Sets up Commander with two code paths: `list-methods` subcommand and the default dynamic method handler
+- Sets up Commander with three subcommands: `list-methods`, `describe`, and the default dynamic method handler
 - The dynamic handler: optionally reads JSON from stdin, parses CLI flags, merges params (CLI flags win over stdin), then branches into three paths:
   1. `--dry-run`: short-circuits immediately after param resolution -- outputs a JSON preview with `ok`, `dry_run`, `method`, `params`, `token_present`, `paginate`, and optionally a `warning` for unknown methods. Does not require a token. Always exits 0.
   2. `--paginate`: validates token, then calls `client.paginate()` + `mergePages()`
   3. Default: validates token, then calls `client.apiCall()`
 - When no arguments are provided (`process.argv.length <= 2`), help text and error go to stderr and the process exits with code 2
+- The `list-methods` subcommand supports two options that compose together: `--namespace <ns>` filters the method list to those starting with the given prefix (e.g., `chat.`), and `--descriptions` changes the output shape from `string[]` to `Array<{ method, description }>` by pulling descriptions from `getMethodMetadata()`. When `--namespace` is provided, a `namespace` field is added to the response JSON.
 
 **Pagination merging (`paginate.ts`)**
 - `mergePages(pages)` takes an `AsyncIterable` of page objects and returns a single merged object
