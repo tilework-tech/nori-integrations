@@ -27,14 +27,30 @@ for arg in "$@"; do
     esac
 done
 
-# 1. Check gws binary
+# 1. Install gws if not present
 if ! command -v gws &>/dev/null; then
-    echo "ERROR: gws is not installed or not on PATH." >&2
-    echo "" >&2
-    echo "To install: npm install -g @googleworkspace/cli" >&2
-    echo "Or: brew install googleworkspace-cli" >&2
-    echo "Source: $SCRIPT_SOURCE" >&2
-    exit 1
+    echo "gws not found, installing @googleworkspace/cli..." >&2
+    if command -v npm &>/dev/null; then
+        npm install -g @googleworkspace/cli >&2
+    else
+        echo "ERROR: gws is not installed and npm is not available to install it." >&2
+        echo "" >&2
+        echo "Install npm first, or install gws manually:" >&2
+        echo "  brew install googleworkspace-cli" >&2
+        echo "  cargo install --git https://github.com/googleworkspace/cli --locked" >&2
+        echo "Source: $SCRIPT_SOURCE" >&2
+        exit 1
+    fi
+
+    if ! command -v gws &>/dev/null; then
+        echo "ERROR: npm install succeeded but gws is still not on PATH." >&2
+        echo "" >&2
+        echo "Check that npm global bin directory is in your PATH:" >&2
+        echo "  npm config get prefix" >&2
+        echo "Source: $SCRIPT_SOURCE" >&2
+        exit 1
+    fi
+    echo "gws installed successfully." >&2
 fi
 
 GWS_VERSION=$(gws --version 2>/dev/null || echo "unknown")

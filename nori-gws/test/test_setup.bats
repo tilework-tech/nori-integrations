@@ -48,16 +48,42 @@ teardown() {
 
 # ── Missing prerequisites ──────────────────────────────────────────
 
-@test "exits 1 when gws is not on PATH" {
-    # Remove the stub bin dir; keep system paths for bash/coreutils
-    export PATH="${PATH/"$TEST_TMPDIR/bin:"/}"
-    if command -v gws &>/dev/null; then
-        skip "real gws is installed on this system"
+@test "installs gws via npm when not on PATH" {
+    # Remove gws stub but provide a fake npm that "installs" it
+    rm "$TEST_TMPDIR/bin/gws"
+    cat > "$TEST_TMPDIR/bin/npm" <<STUB
+#!/bin/bash
+if [[ "\$1" == "install" && "\$2" == "-g" && "\$3" == "@googleworkspace/cli" ]]; then
+    # Simulate npm install by creating gws in the same bin dir
+    cat > "$TEST_TMPDIR/bin/gws" <<'GWS'
+#!/bin/bash
+if [[ "\\\$1" == "--version" ]]; then echo "gws 0.22.5"; exit 0; fi
+echo '{"ok":true}'
+exit 0
+GWS
+    chmod +x "$TEST_TMPDIR/bin/gws"
+    exit 0
+fi
+exit 1
+STUB
+    chmod +x "$TEST_TMPDIR/bin/npm"
+
+    run "$SETUP"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"installing"* ]] || [[ "$output" == *"installed"* ]] || [[ "$output" == *"Installing"* ]]
+}
+
+@test "exits 1 when gws is missing and npm is not available" {
+    # Remove gws stub and ensure no npm on path
+    rm "$TEST_TMPDIR/bin/gws"
+    # Hide real npm by restricting PATH to just our bin dir (which now has no gws or npm) plus coreutils
+    export PATH="$TEST_TMPDIR/bin:/usr/bin:/bin"
+    if command -v npm &>/dev/null; then
+        skip "npm found in /usr/bin or /bin"
     fi
     run "$SETUP"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"gws"* ]]
-    [[ "$output" == *"install"* ]]
+    [[ "$output" == *"npm"* ]] || [[ "$output" == *"install"* ]]
 }
 
 @test "exits 1 when GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE is not set" {
