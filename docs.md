@@ -11,12 +11,16 @@ Path: @/
 - Each integration follows a common pattern: provide an agent-friendly CLI interface with JSON output, and a setup mechanism to verify prerequisites
 
 ### Core Implementation
+- [`setup.sh`](setup.sh) -- Unified entry point that bootstraps all integration packages in sequence and generates `~/AGENTS.md`. Delegates to each sub-package's own setup mechanism rather than duplicating logic: `npm install && npm run build` for nori-slack-cli, `setup.sh` for nori-gws and nori-sprites
+- `~/AGENTS.md` -- Generated (not hand-maintained) discovery file that lists all available CLIs and the source repo path, so any coding agent can discover what tools are available
 - [@/nori-slack-cli](nori-slack-cli/) -- TypeScript CLI wrapping `@slack/web-api` for Slack Web API access; a custom wrapper because no suitable agent-friendly CLI existed
 - [@/nori-gws](nori-gws/) -- Setup/configuration package for the `gws` CLI (`@googleworkspace/cli`) for Google Workspace API access; uses the existing `gws` binary directly rather than wrapping it, since `gws` already provides agent-friendly features (JSON output, `--dry-run`, discovery-based command surface)
 - [@/nori-sprites](nori-sprites/) -- Setup/verification package for the `sprite` CLI for inter-sprite communication on Fly.io; follows the same shell-script-only pattern as nori-gws since the `sprite` CLI is already agent-friendly
 
 ### Things to Know
 - Integrations follow two architectural patterns based on whether a suitable agent-friendly CLI already exists: nori-slack-cli is a full TypeScript CLI project, while nori-gws and nori-sprites are shell-script-only setup/verification layers around existing CLIs
+- `setup.sh` uses `set -euo pipefail`, so any sub-package failure halts the entire setup and `~/AGENTS.md` is never written -- this makes partial setup states detectable (no AGENTS.md = something failed)
+- `~/AGENTS.md` is overwritten on every run, making `setup.sh` idempotent
 - Git worktrees are used for parallel development on different integrations (e.g., `slack` worktree, `googleworkspace` worktree)
 
 Created and maintained by Nori.
