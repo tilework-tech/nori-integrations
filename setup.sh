@@ -5,33 +5,66 @@
 #
 # Exit codes:
 #   0 — All sub-package setups succeeded, ~/AGENTS.md written
-#   Non-zero — A sub-package setup failed
+#   1 — One or more sub-package setups failed; ~/AGENTS.md lists only successful CLIs
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FAILURES=0
 
 echo "Setting up nori-integrations CLI tools..." >&2
 
 # 1. nori-slack-cli: install dependencies and build (postbuild runs npm link)
 echo "Setting up nori-slack-cli..." >&2
-(cd "$SCRIPT_DIR/nori-slack-cli" && npm install && npm run build) >&2
+if (cd "$SCRIPT_DIR/nori-slack-cli" && npm install && npm run build) >&2; then
+    SLACK_OK=true
+else
+    SLACK_OK=false
+    FAILURES=$((FAILURES + 1))
+    echo "nori-slack-cli setup failed." >&2
+fi
 
 # 2. nori-gws: run setup script to verify/install gws
 echo "Setting up nori-gws..." >&2
-bash "$SCRIPT_DIR/nori-gws/setup.sh" >&2
+if bash "$SCRIPT_DIR/nori-gws/setup.sh" >&2; then
+    GWS_OK=true
+else
+    GWS_OK=false
+    FAILURES=$((FAILURES + 1))
+    echo "nori-gws setup failed." >&2
+fi
 
 # 3. nori-sprites: run setup script to verify/install sprite
 echo "Setting up nori-sprites..." >&2
-bash "$SCRIPT_DIR/nori-sprites/setup.sh" >&2
+if bash "$SCRIPT_DIR/nori-sprites/setup.sh" >&2; then
+    SPRITES_OK=true
+else
+    SPRITES_OK=false
+    FAILURES=$((FAILURES + 1))
+    echo "nori-sprites setup failed." >&2
+fi
 
-# 4. Generate ~/AGENTS.md
-cat > "$HOME/AGENTS.md" <<EOF
-# Agent CLIs
-Source: $SCRIPT_DIR
-- nori-slack: Slack Web API CLI (nori-slack-cli/)
-- gws: Google Workspace CLI (nori-gws/)
-- sprite: Sprite inter-agent CLI (nori-sprites/)
-EOF
+# 4. Generate ~/AGENTS.md (only list successful CLIs)
+{
+    echo "# Agent CLIs"
+    echo "Source: $SCRIPT_DIR"
+    [[ "$SLACK_OK" == true ]] && echo "- nori-slack: Slack Web API CLI (nori-slack-cli/)"
+    [[ "$GWS_OK" == true ]] && echo "- gws: Google Workspace CLI (nori-gws/)"
+    [[ "$SPRITES_OK" == true ]] && echo "- sprite: Sprite inter-agent CLI (nori-sprites/)"
+} > "$HOME/AGENTS.md"
 
+# 5. Summary
+echo "" >&2
+echo "Setup summary:" >&2
+[[ "$SLACK_OK" == true ]] && echo "  nori-slack-cli: OK" >&2 || echo "  nori-slack-cli: FAIL" >&2
+[[ "$GWS_OK" == true ]] && echo "  nori-gws:       OK" >&2 || echo "  nori-gws:       FAIL" >&2
+[[ "$SPRITES_OK" == true ]] && echo "  nori-sprites:   OK" >&2 || echo "  nori-sprites:   FAIL" >&2
+
+if [[ "$FAILURES" -gt 0 ]]; then
+    echo "" >&2
+    echo "$FAILURES package(s) failed. ~/AGENTS.md lists only successful CLIs." >&2
+    exit 1
+fi
+
+echo "" >&2
 echo "All CLI tools set up. ~/AGENTS.md written." >&2
