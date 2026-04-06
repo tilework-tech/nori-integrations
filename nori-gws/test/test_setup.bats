@@ -22,24 +22,19 @@ exit 0
 STUB
     chmod +x "$TEST_TMPDIR/bin/gws"
 
-    # Create a valid service account JSON
-    cat > "$TEST_TMPDIR/service-account.json" <<'JSON'
+    # Create a valid authorized_user JSON (the expected credential type)
+    cat > "$TEST_TMPDIR/authorized-user.json" <<'JSON'
 {
-  "type": "service_account",
-  "project_id": "test-project",
-  "private_key_id": "abc123",
-  "private_key": "-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----\n",
-  "client_email": "test@test-project.iam.gserviceaccount.com",
-  "client_id": "123456789",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token"
+  "type": "authorized_user",
+  "client_id": "123456789.apps.googleusercontent.com",
+  "client_secret": "test-secret",
+  "refresh_token": "1//test-refresh-token"
 }
 JSON
 
     # Set up valid env by default — tests unset as needed
-    export PATH="$TEST_TMPDIR/bin:$PATH"
-    export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$TEST_TMPDIR/service-account.json"
-    export GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER="admin@example.com"
+    export PATH="$TEST_TMPDIR/bin:/usr/bin:/bin"
+    export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$TEST_TMPDIR/authorized-user.json"
 }
 
 teardown() {
@@ -49,18 +44,15 @@ teardown() {
 # ── Missing prerequisites ──────────────────────────────────────────
 
 @test "installs gws via npm when not on PATH" {
-    # Remove gws stub but provide a fake npm that "installs" it
+    # Remove gws stub and restrict PATH so no real gws is found
     rm "$TEST_TMPDIR/bin/gws"
+    export PATH="$TEST_TMPDIR/bin:/usr/bin:/bin"
+
+    # Provide a fake npm that "installs" gws
     cat > "$TEST_TMPDIR/bin/npm" <<STUB
 #!/bin/bash
-if [[ "\$1" == "install" && "\$2" == "-g" && "\$3" == "@googleworkspace/cli" ]]; then
-    # Simulate npm install by creating gws in the same bin dir
-    cat > "$TEST_TMPDIR/bin/gws" <<'GWS'
-#!/bin/bash
-if [[ "\\\$1" == "--version" ]]; then echo "gws 0.22.5"; exit 0; fi
-echo '{"ok":true}'
-exit 0
-GWS
+if [ "\$1" = "install" ] && [ "\$2" = "-g" ] && [ "\$3" = "@googleworkspace/cli" ]; then
+    printf '#!/bin/bash\\nif [ "\$1" = "--version" ]; then echo "gws 0.22.5"; exit 0; fi\\necho "{\\\"ok\\\":true}"\\nexit 0\\n' > "$TEST_TMPDIR/bin/gws"
     chmod +x "$TEST_TMPDIR/bin/gws"
     exit 0
 fi
@@ -93,14 +85,7 @@ STUB
     [[ "$output" == *"GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE"* ]]
 }
 
-@test "exits 1 when GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER is not set" {
-    unset GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER
-    run "$SETUP"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER"* ]]
-}
-
-# ── Credentials file validation ────��───────────────────────────────
+# ── Credentials file validation ───────────────────────────────────
 
 @test "exits 1 when credentials file does not exist" {
     export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$TEST_TMPDIR/nonexistent.json"
@@ -117,15 +102,34 @@ STUB
     [[ "$output" == *"JSON"* ]] || [[ "$output" == *"json"* ]] || [[ "$output" == *"parse"* ]]
 }
 
-@test "warns but does not fail when credentials file is not service_account type" {
-    echo '{"type": "authorized_user", "client_id": "x"}' > "$TEST_TMPDIR/oauth.json"
-    export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$TEST_TMPDIR/oauth.json"
+@test "warns when credentials file is service_account type" {
+    cat > "$TEST_TMPDIR/sa.json" <<'JSON'
+{
+  "type": "service_account",
+  "project_id": "test-project",
+  "private_key_id": "abc123",
+  "private_key": "-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----\n",
+  "client_email": "test@test-project.iam.gserviceaccount.com",
+  "client_id": "123456789",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token"
+}
+JSON
+    export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$TEST_TMPDIR/sa.json"
     run "$SETUP"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"service_account"* ]] || [[ "$output" == *"warning"* ]] || [[ "$output" == *"Warning"* ]]
+    [[ "$output" == *"service_account"* ]]
+    [[ "$output" == *"impersonat"* ]] || [[ "$output" == *"Warning"* ]]
 }
 
-# ── Success path ──────���────────────────────────────────────────────
+@test "accepts authorized_user credentials without warning" {
+    run "$SETUP"
+    [ "$status" -eq 0 ]
+    # Should NOT contain a warning about credential type
+    ! [[ "$output" == *"Warning"* ]]
+}
+
+# ── Success path ──────────────────────────────────────────────────
 
 @test "exits 0 when all prerequisites are met" {
     run "$SETUP"
@@ -133,7 +137,7 @@ STUB
     [[ "$output" == *"ready"* ]] || [[ "$output" == *"Ready"* ]] || [[ "$output" == *"OK"* ]]
 }
 
-# ── Smoke test ───────��─────────────────────────────────────────────
+# ── Smoke test ────────────────────────────────────────────────────
 
 @test "smoke test succeeds when gws API call works" {
     run "$SETUP" --smoke-test
