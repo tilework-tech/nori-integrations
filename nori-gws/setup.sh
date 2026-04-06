@@ -55,30 +55,16 @@ fi
 
 GWS_VERSION=$(gws --version 2>/dev/null || echo "unknown")
 
-# 2. Check required env vars
+# 2. Check required env var
 if [[ -z "${GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE:-}" ]]; then
     echo "ERROR: GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE is not set." >&2
     echo "" >&2
-    echo "Set it to the path of your Google service account JSON key file:" >&2
-    echo "  export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE=/path/to/service-account.json" >&2
+    echo "Set it to the path of your exported gws credentials JSON:" >&2
+    echo "  export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE=/path/to/creds.json" >&2
     echo "" >&2
-    echo "To create a service account key:" >&2
-    echo "  1. Go to GCP Console > IAM > Service Accounts" >&2
-    echo "  2. Create or select a service account" >&2
-    echo "  3. Keys > Add Key > Create new key > JSON" >&2
-    echo "Source: $SCRIPT_SOURCE" >&2
-    exit 1
-fi
-
-if [[ -z "${GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER:-}" ]]; then
-    echo "ERROR: GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER is not set." >&2
-    echo "" >&2
-    echo "Set it to the email of the user to impersonate via domain-wide delegation:" >&2
-    echo "  export GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER=admin@yourdomain.com" >&2
-    echo "" >&2
-    echo "Prerequisites:" >&2
-    echo "  1. Enable domain-wide delegation on the service account (GCP Console)" >&2
-    echo "  2. Authorize scopes in Workspace Admin Console > Security > API Controls" >&2
+    echo "To create credentials:" >&2
+    echo "  1. gws auth login (as your dedicated Workspace user)" >&2
+    echo "  2. gws auth export --unmasked > creds.json" >&2
     echo "Source: $SCRIPT_SOURCE" >&2
     exit 1
 fi
@@ -97,17 +83,18 @@ if command -v jq &>/dev/null; then
     if ! jq empty "$GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE" 2>/dev/null; then
         echo "ERROR: Credentials file is not valid JSON: $GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE" >&2
         echo "" >&2
-        echo "The file must be a valid JSON file (service account key or exported OAuth credentials)." >&2
+        echo "The file must be a valid JSON file (exported gws credentials or service account key)." >&2
         echo "Source: $SCRIPT_SOURCE" >&2
         exit 1
     fi
 
     # 5. Check credential type
     CRED_TYPE=$(jq -r '.type // empty' "$GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE" 2>/dev/null || true)
-    if [[ "$CRED_TYPE" != "service_account" ]]; then
-        echo "Warning: Credentials file type is '${CRED_TYPE:-unknown}', not 'service_account'." >&2
-        echo "Domain-wide delegation requires a service_account credential type." >&2
-        echo "This may still work if using exported OAuth credentials." >&2
+    if [[ "$CRED_TYPE" == "service_account" ]]; then
+        echo "Warning: Credentials file type is 'service_account'." >&2
+        echo "The gws CLI does not support domain-wide delegation or user impersonation." >&2
+        echo "A service_account can only access resources explicitly shared with it." >&2
+        echo "Consider using authorized_user credentials instead (gws auth login + gws auth export)." >&2
     fi
 else
     # No jq — do a basic check
@@ -131,10 +118,9 @@ if [[ "$SMOKE_TEST" == true ]]; then
         echo "$SMOKE_OUTPUT" >&2
         echo "" >&2
         echo "Possible causes:" >&2
-        echo "  - Service account does not have domain-wide delegation enabled" >&2
-        echo "  - Required scopes not authorized in Workspace Admin Console" >&2
+        echo "  - Credentials are expired or revoked (re-run: gws auth login)" >&2
         echo "  - Drive API not enabled in GCP project" >&2
-        echo "  - Impersonated user does not exist" >&2
+        echo "  - OAuth scopes do not include Drive access" >&2
         echo "" >&2
         echo "Debug with: gws drive about get --format json" >&2
         echo "Source: $SCRIPT_SOURCE" >&2
@@ -146,4 +132,3 @@ fi
 echo "Google Workspace CLI is ready." >&2
 echo "  gws version: $GWS_VERSION" >&2
 echo "  credentials: $GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE" >&2
-echo "  impersonating: $GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER" >&2
