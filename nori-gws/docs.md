@@ -18,7 +18,7 @@ Path: @/nori-gws
     |-- orgScript: calls setup.sh to verify everything works
 ```
 
-- The broker's config-builder is responsible for writing the two required env vars (`GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` and `GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER`) -- this package does not manage credentials, only validates them
+- The broker's config-builder is responsible for writing `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` -- this package does not manage credentials, only validates them
 - Broker changes for credential plumbing live in separate PRs against nori-handroll, not in this repository
 
 ### Core Implementation
@@ -31,20 +31,18 @@ Path: @/nori-gws
 | 2 | Smoke test failed (API call unsuccessful) |
 
 - The validation sequence:
-  1. Checks `gws` is on PATH
+  1. Checks `gws` is on PATH (attempts `npm install -g @googleworkspace/cli` if missing)
   2. Checks `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` env var is set
-  3. Checks `GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER` env var is set
-  4. Validates the credentials file exists on disk
-  5. Validates the credentials file is valid JSON (uses `jq` if available, falls back to checking first character)
-  6. Warns (but does not fail) if the credential type is not `service_account`
-  7. Optionally runs `gws drive about get --format json` as a smoke test when `--smoke-test` flag is passed
+  3. Validates the credentials file exists on disk
+  4. Validates the credentials file is valid JSON (uses `jq` if available, falls back to checking first character)
+  5. Warns (but does not fail) if the credential type is `service_account`, because `gws` does not support domain-wide delegation or user impersonation
+  6. Optionally runs `gws drive about get --format json` as a smoke test when `--smoke-test` flag is passed
 - All diagnostic output goes to stderr; the script uses `set -euo pipefail` for strict error handling
 - Every error message includes a `Source:` line pointing back to the script path for traceability
 
 ### Things to Know
-- Authentication relies on two env vars that `gws` reads natively -- no `gws auth setup` or `gws auth login` is required for service account auth with domain-wide delegation
+- Authentication uses `authorized_user` credentials (OAuth2 refresh token) from a dedicated Workspace user, not service accounts. The `gws` CLI's Rust source (`auth.rs`) creates a `ServiceAccountAuthenticator` without a `subject` field, so domain-wide delegation / user impersonation is impossible. Service accounts can only access resources explicitly shared with the service account email. See [README.md](README.md) for the full auth analysis including credential resolution order, token lifecycle, and fleet distribution model
 - The JSON validation has two code paths: a `jq`-based path that validates structure and checks the `type` field, and a fallback path that only checks the first byte is `{` when `jq` is not available
-- The `--smoke-test` flag makes a real API call (`gws drive about get`), which requires the Drive API to be enabled in the GCP project and proper domain-wide delegation scopes authorized in Workspace Admin Console
-- Research notes on `gws` capabilities, auth resolution order, and command structure are in [RESEARCH-NOTES.md](RESEARCH-NOTES.md)
+- The `--smoke-test` flag makes a real API call (`gws drive about get`), which requires the Drive API to be enabled in the GCP project and appropriate OAuth scopes
 
 Created and maintained by Nori.

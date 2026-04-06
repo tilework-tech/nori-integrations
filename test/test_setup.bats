@@ -44,11 +44,10 @@ exit 0
 STUB
     chmod +x "$TEST_TMPDIR/bin/sprite"
 
-    # Provide env vars needed by sub-package setup scripts
-    export PATH="$TEST_TMPDIR/bin:$PATH"
+    # Restrict PATH so only our stubs are used (no real gws/sprite/npm leaking in)
+    export PATH="$TEST_TMPDIR/bin:/usr/bin:/bin"
     export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$TEST_TMPDIR/creds.json"
-    echo '{"type":"service_account"}' > "$TEST_TMPDIR/creds.json"
-    export GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER="admin@example.com"
+    echo '{"type":"authorized_user","client_id":"x","client_secret":"x","refresh_token":"x"}' > "$TEST_TMPDIR/creds.json"
     export SPRITE_TOKEN="org/token-id/secret"
     mkdir -p "$HOME/.sprites"
     echo '{}' > "$HOME/.sprites/sprites.json"
