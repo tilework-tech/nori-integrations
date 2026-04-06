@@ -43,7 +43,8 @@ STUB
     echo '{"version":"1","current_user":"test"}' > "$TEST_TMPDIR/.sprites/sprites.json"
 
     # Set up valid env by default — tests unset as needed
-    export PATH="$TEST_TMPDIR/bin:$PATH"
+    # Restrict PATH so only our stubs are found (not real system binaries)
+    export PATH="$TEST_TMPDIR/bin:/usr/bin:/bin"
 }
 
 teardown() {

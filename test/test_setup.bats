@@ -44,14 +44,31 @@ exit 0
 STUB
     chmod +x "$TEST_TMPDIR/bin/sprite"
 
+    # Stub gam
+    cat > "$TEST_TMPDIR/bin/gam" <<'STUB'
+#!/bin/bash
+if [[ "$1" == "version" && "$2" == "simple" ]]; then echo "7.06.00"; exit 0; fi
+if [[ "$1" == "version" ]]; then echo "GAM 7.06.00"; exit 0; fi
+if [[ "$1" == "info" ]]; then echo "Google Workspace Domain: example.com"; exit 0; fi
+echo '{"ok":true}'
+exit 0
+STUB
+    chmod +x "$TEST_TMPDIR/bin/gam"
+
     # Provide env vars needed by sub-package setup scripts
-    export PATH="$TEST_TMPDIR/bin:$PATH"
+    # Restrict PATH so only our stubs are found (not real system binaries)
+    export PATH="$TEST_TMPDIR/bin:/usr/bin:/bin"
     export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$TEST_TMPDIR/creds.json"
     echo '{"type":"service_account"}' > "$TEST_TMPDIR/creds.json"
     export GOOGLE_WORKSPACE_CLI_IMPERSONATED_USER="admin@example.com"
     export SPRITE_TOKEN="org/token-id/secret"
     mkdir -p "$HOME/.sprites"
     echo '{}' > "$HOME/.sprites/sprites.json"
+    export GAMCFGDIR="$TEST_TMPDIR/gam-config"
+    mkdir -p "$GAMCFGDIR"
+    echo '{"type":"service_account"}' > "$GAMCFGDIR/oauth2service.json"
+    echo '{"token":"fake"}' > "$GAMCFGDIR/oauth2.txt"
+    echo '{"installed":{"client_id":"fake"}}' > "$GAMCFGDIR/client_secrets.json"
 }
 
 teardown() {
@@ -68,12 +85,13 @@ teardown() {
     grep -q "Source:" "$HOME/AGENTS.md"
 }
 
-@test "~/AGENTS.md lists all three CLIs" {
+@test "~/AGENTS.md lists all four CLIs" {
     run "$SETUP"
     [ "$status" -eq 0 ]
     grep -q "nori-slack" "$HOME/AGENTS.md"
     grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
+    grep -q "gam" "$HOME/AGENTS.md"
 }
 
 # ── Partial failure tolerance ─────────────────────────────────────
@@ -113,6 +131,21 @@ STUB
     grep -q "nori-slack" "$HOME/AGENTS.md"
     ! grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
+    grep -q "gam" "$HOME/AGENTS.md"
+}
+
+@test "exits non-zero but writes AGENTS.md when nori-gam fails" {
+    # Remove gam binary and GAMCFGDIR to trigger setup failure
+    rm "$TEST_TMPDIR/bin/gam"
+    unset GAMCFGDIR
+
+    run "$SETUP"
+    [ "$status" -ne 0 ]
+    [ -f "$HOME/AGENTS.md" ]
+    grep -q "nori-slack" "$HOME/AGENTS.md"
+    grep -q "gws" "$HOME/AGENTS.md"
+    grep -q "sprite" "$HOME/AGENTS.md"
+    ! grep -q "gam" "$HOME/AGENTS.md"
 }
 
 @test "exits non-zero but writes AGENTS.md when nori-sprites fails" {
@@ -127,10 +160,11 @@ STUB
     grep -q "nori-slack" "$HOME/AGENTS.md"
     grep -q "gws" "$HOME/AGENTS.md"
     ! grep -q "sprite" "$HOME/AGENTS.md"
+    grep -q "gam" "$HOME/AGENTS.md"
 }
 
 @test "continues running remaining setups after one fails" {
-    # Make nori-slack-cli fail, verify gws and sprites still ran
+    # Make nori-slack-cli fail, verify gws, sprites, and gam still ran
     cat > "$TEST_TMPDIR/bin/npm" <<STUB
 #!/bin/bash
 echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
@@ -141,9 +175,10 @@ STUB
 
     run "$SETUP"
     [ "$status" -ne 0 ]
-    # Verify gws and sprites setup messages appear in output (they ran)
+    # Verify gws, sprites, and gam setup messages appear in output (they ran)
     [[ "$output" == *"Google Workspace CLI is ready"* ]]
     [[ "$output" == *"Sprite CLI is ready"* ]]
+    [[ "$output" == *"GAM is ready"* ]]
 }
 
 @test "prints summary with FAIL/OK status for each package" {
@@ -161,6 +196,7 @@ STUB
     [ "$status" -ne 0 ]
     [[ "$output" == *"nori-gws"*"FAIL"* ]]
     [[ "$output" == *"nori-slack-cli"*"OK"* ]]
+    [[ "$output" == *"nori-gam"*"OK"* ]]
 }
 
 @test "writes AGENTS.md with just header when all packages fail" {
@@ -182,6 +218,10 @@ STUB
     rm -rf "$HOME/.sprites"
     unset SPRITE_TOKEN
 
+    # Remove gam and config (breaks nori-gam)
+    rm "$TEST_TMPDIR/bin/gam"
+    unset GAMCFGDIR
+
     run "$SETUP"
     [ "$status" -ne 0 ]
     [ -f "$HOME/AGENTS.md" ]
@@ -189,6 +229,7 @@ STUB
     ! grep -q "nori-slack" "$HOME/AGENTS.md"
     ! grep -q "gws" "$HOME/AGENTS.md"
     ! grep -q "sprite" "$HOME/AGENTS.md"
+    ! grep -q "gam" "$HOME/AGENTS.md"
 }
 
 # ── Idempotency ──────────────────────────────────────────────────

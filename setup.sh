@@ -44,21 +44,33 @@ else
     echo "nori-sprites setup failed." >&2
 fi
 
-# 4. Generate ~/AGENTS.md (only list successful CLIs)
+# 4. nori-gam: run setup script to verify/install gam
+echo "Setting up nori-gam..." >&2
+if bash "$SCRIPT_DIR/nori-gam/setup.sh" >&2; then
+    GAM_OK=true
+else
+    GAM_OK=false
+    FAILURES=$((FAILURES + 1))
+    echo "nori-gam setup failed." >&2
+fi
+
+# 5. Generate ~/AGENTS.md (only list successful CLIs)
 {
     echo "# Agent CLIs"
     echo "Source: $SCRIPT_DIR"
     [[ "$SLACK_OK" == true ]] && echo "- nori-slack: Slack Web API CLI (nori-slack-cli/)"
     [[ "$GWS_OK" == true ]] && echo "- gws: Google Workspace CLI (nori-gws/)"
     [[ "$SPRITES_OK" == true ]] && echo "- sprite: Sprite inter-agent CLI (nori-sprites/)"
+    [[ "$GAM_OK" == true ]] && echo "- gam: Google Admin CLI (nori-gam/)"
 } > "$HOME/AGENTS.md"
 
-# 5. Summary
+# 6. Summary
 echo "" >&2
 echo "Setup summary:" >&2
 [[ "$SLACK_OK" == true ]] && echo "  nori-slack-cli: OK" >&2 || echo "  nori-slack-cli: FAIL" >&2
 [[ "$GWS_OK" == true ]] && echo "  nori-gws:       OK" >&2 || echo "  nori-gws:       FAIL" >&2
 [[ "$SPRITES_OK" == true ]] && echo "  nori-sprites:   OK" >&2 || echo "  nori-sprites:   FAIL" >&2
+[[ "$GAM_OK" == true ]] && echo "  nori-gam:       OK" >&2 || echo "  nori-gam:       FAIL" >&2
 
 if [[ "$FAILURES" -gt 0 ]]; then
     echo "" >&2

@@ -68,6 +68,9 @@ exit 1
 STUB
     chmod +x "$TEST_TMPDIR/bin/npm"
 
+    # Restrict PATH so the real gws binary is not found
+    export PATH="$TEST_TMPDIR/bin:/usr/bin:/bin"
+
     run "$SETUP"
     [ "$status" -eq 0 ]
     [[ "$output" == *"installing"* ]] || [[ "$output" == *"installed"* ]] || [[ "$output" == *"Installing"* ]]
