@@ -16,7 +16,7 @@ Path: @/test
 - Environment variables required by sub-package setup scripts (`GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE`, `SPRITE_TOKEN`, etc.) are set to test values in the bats `setup()` function
 
 ### Things to Know
-- Tests verify failure propagation: when a sub-package setup fails, `setup.sh` should exit non-zero and `~/AGENTS.md` should not exist -- this validates the `set -euo pipefail` contract
+- Tests verify partial-failure tolerance: when a sub-package setup fails, `setup.sh` should exit non-zero but `~/AGENTS.md` should still be written -- it just omits the failed CLI while listing the successful ones. Additional tests verify that remaining sub-packages continue running after an earlier failure and that the summary output includes FAIL/OK status per package
 - Tests verify idempotency: running `setup.sh` twice overwrites `~/AGENTS.md` rather than appending or failing
 - Tests verify directory independence: `setup.sh` works regardless of the caller's working directory because it resolves `SCRIPT_DIR` from `BASH_SOURCE`
 

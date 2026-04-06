@@ -76,9 +76,9 @@ teardown() {
     grep -q "sprite" "$HOME/AGENTS.md"
 }
 
-# ── Failure propagation ──────────────────────────────────────────
+# ── Partial failure tolerance ─────────────────────────────────────
 
-@test "fails if nori-slack-cli build fails" {
+@test "exits non-zero but writes AGENTS.md when nori-slack-cli fails" {
     # Replace npm stub with one that fails on build
     cat > "$TEST_TMPDIR/bin/npm" <<STUB
 #!/bin/bash
@@ -90,10 +90,13 @@ STUB
 
     run "$SETUP"
     [ "$status" -ne 0 ]
-    [ ! -f "$HOME/AGENTS.md" ]
+    [ -f "$HOME/AGENTS.md" ]
+    ! grep -q "nori-slack" "$HOME/AGENTS.md"
+    grep -q "gws" "$HOME/AGENTS.md"
+    grep -q "sprite" "$HOME/AGENTS.md"
 }
 
-@test "fails if nori-gws setup fails" {
+@test "exits non-zero but writes AGENTS.md when nori-gws fails" {
     # Remove gws to trigger setup failure (missing binary + no npm to install it)
     rm "$TEST_TMPDIR/bin/gws"
     cat > "$TEST_TMPDIR/bin/npm" <<STUB
@@ -106,10 +109,13 @@ STUB
 
     run "$SETUP"
     [ "$status" -ne 0 ]
-    [ ! -f "$HOME/AGENTS.md" ]
+    [ -f "$HOME/AGENTS.md" ]
+    grep -q "nori-slack" "$HOME/AGENTS.md"
+    ! grep -q "gws" "$HOME/AGENTS.md"
+    grep -q "sprite" "$HOME/AGENTS.md"
 }
 
-@test "fails if nori-sprites setup fails" {
+@test "exits non-zero but writes AGENTS.md when nori-sprites fails" {
     # Remove sprite binary and config to trigger auth failure
     rm "$TEST_TMPDIR/bin/sprite"
     rm -rf "$HOME/.sprites"
@@ -117,7 +123,72 @@ STUB
 
     run "$SETUP"
     [ "$status" -ne 0 ]
-    [ ! -f "$HOME/AGENTS.md" ]
+    [ -f "$HOME/AGENTS.md" ]
+    grep -q "nori-slack" "$HOME/AGENTS.md"
+    grep -q "gws" "$HOME/AGENTS.md"
+    ! grep -q "sprite" "$HOME/AGENTS.md"
+}
+
+@test "continues running remaining setups after one fails" {
+    # Make nori-slack-cli fail, verify gws and sprites still ran
+    cat > "$TEST_TMPDIR/bin/npm" <<STUB
+#!/bin/bash
+echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
+if [[ "\$1" == "run" && "\$2" == "build" ]]; then exit 1; fi
+exit 0
+STUB
+    chmod +x "$TEST_TMPDIR/bin/npm"
+
+    run "$SETUP"
+    [ "$status" -ne 0 ]
+    # Verify gws and sprites setup messages appear in output (they ran)
+    [[ "$output" == *"Google Workspace CLI is ready"* ]]
+    [[ "$output" == *"Sprite CLI is ready"* ]]
+}
+
+@test "prints summary with FAIL/OK status for each package" {
+    # Make nori-gws fail
+    rm "$TEST_TMPDIR/bin/gws"
+    cat > "$TEST_TMPDIR/bin/npm" <<STUB
+#!/bin/bash
+echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
+if [[ "\$1" == "install" && "\$2" == "-g" ]]; then exit 1; fi
+exit 0
+STUB
+    chmod +x "$TEST_TMPDIR/bin/npm"
+
+    run "$SETUP"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"nori-gws"*"FAIL"* ]]
+    [[ "$output" == *"nori-slack-cli"*"OK"* ]]
+}
+
+@test "writes AGENTS.md with just header when all packages fail" {
+    # Make npm fail on build (breaks nori-slack-cli)
+    cat > "$TEST_TMPDIR/bin/npm" <<STUB
+#!/bin/bash
+echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
+if [[ "\$1" == "run" && "\$2" == "build" ]]; then exit 1; fi
+if [[ "\$1" == "install" && "\$2" == "-g" ]]; then exit 1; fi
+exit 0
+STUB
+    chmod +x "$TEST_TMPDIR/bin/npm"
+
+    # Remove gws (breaks nori-gws)
+    rm "$TEST_TMPDIR/bin/gws"
+
+    # Remove sprite binary and config (breaks nori-sprites)
+    rm "$TEST_TMPDIR/bin/sprite"
+    rm -rf "$HOME/.sprites"
+    unset SPRITE_TOKEN
+
+    run "$SETUP"
+    [ "$status" -ne 0 ]
+    [ -f "$HOME/AGENTS.md" ]
+    grep -q "# Agent CLIs" "$HOME/AGENTS.md"
+    ! grep -q "nori-slack" "$HOME/AGENTS.md"
+    ! grep -q "gws" "$HOME/AGENTS.md"
+    ! grep -q "sprite" "$HOME/AGENTS.md"
 }
 
 # ── Idempotency ──────────────────────────────────────────────────

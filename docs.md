@@ -19,7 +19,7 @@ Path: @/
 
 ### Things to Know
 - Integrations follow two architectural patterns based on whether a suitable agent-friendly CLI already exists: nori-slack-cli is a full TypeScript CLI project, while nori-gws and nori-sprites are shell-script-only setup/verification layers around existing CLIs
-- `setup.sh` uses `set -euo pipefail`, so any sub-package failure halts the entire setup and `~/AGENTS.md` is never written -- this makes partial setup states detectable (no AGENTS.md = something failed)
+- `setup.sh` uses partial-failure tolerance: each sub-package setup runs inside an `if` block that captures success/failure, so one package failing does not prevent the others from being attempted. `~/AGENTS.md` is always written but only lists successfully set up CLIs. Exit code is 0 if all packages succeed, 1 if any failed. A summary table (OK/FAIL per package) is printed to stderr at the end
 - `~/AGENTS.md` is overwritten on every run, making `setup.sh` idempotent
 - Git worktrees are used for parallel development on different integrations (e.g., `slack` worktree, `googleworkspace` worktree)
 
