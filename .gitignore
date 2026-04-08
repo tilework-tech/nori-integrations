@@ -141,3 +141,6 @@ vite.config.ts.timestamp-*
 .cursor
 .worktrees
 .worktrees/
+
+# Toolshed bin/ — populated by setup.sh, not checked in
+bin/

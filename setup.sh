@@ -14,9 +14,14 @@ FAILURES=0
 
 echo "Setting up nori-integrations CLI tools..." >&2
 
-# 1. nori-slack-cli: install dependencies and build (postbuild runs npm link)
+# Toolshed bin/ directory — executables here are on $PATH when used as a toolshed
+mkdir -p "$SCRIPT_DIR/bin"
+
+# 1. nori-slack-cli: install dependencies, build, and symlink into bin/
 echo "Setting up nori-slack-cli..." >&2
+rm -f "$SCRIPT_DIR/bin/nori-slack"
 if (cd "$SCRIPT_DIR/nori-slack-cli" && npm install && npm run build) >&2; then
+    ln -sf ../nori-slack-cli/dist/index.js "$SCRIPT_DIR/bin/nori-slack"
     SLACK_OK=true
 else
     SLACK_OK=false
@@ -58,10 +63,13 @@ fi
 {
     echo "# Agent CLIs"
     echo "Source: $SCRIPT_DIR"
+    echo ""
     [[ "$SLACK_OK" == true ]] && echo "- nori-slack: Slack Web API CLI (nori-slack-cli/)"
     [[ "$GWS_OK" == true ]] && echo "- gws: Google Workspace CLI (nori-gws/)"
     [[ "$SPRITES_OK" == true ]] && echo "- sprite: Sprite inter-agent CLI (nori-sprites/)"
     [[ "$GAM_OK" == true ]] && echo "- gam: Google Admin CLI (nori-gam/)"
+    echo ""
+    echo "For detailed usage, see the nori-integrations-toolshed skill."
 } > "$HOME/AGENTS.md"
 
 # 6. Summary
@@ -80,3 +88,4 @@ fi
 
 echo "" >&2
 echo "All CLI tools set up. ~/AGENTS.md written." >&2
+echo "Add bin/ to PATH: export PATH=\"$SCRIPT_DIR/bin:\$PATH\"" >&2

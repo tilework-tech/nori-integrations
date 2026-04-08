@@ -17,10 +17,16 @@ setup() {
     # Create fake bin dir with stubs for all sub-package dependencies
     mkdir -p "$TEST_TMPDIR/bin"
 
-    # Stub npm: records calls, simulates install/build/link
+    # Stub npm: records calls, simulates install/build (creates dist/index.js)
     cat > "$TEST_TMPDIR/bin/npm" <<STUB
 #!/bin/bash
 echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
+# Simulate build output so bin/ symlinks resolve
+if [[ "\$1" == "run" && "\$2" == "build" ]]; then
+    mkdir -p dist
+    echo '#!/usr/bin/env node' > dist/index.js
+    chmod +x dist/index.js
+fi
 exit 0
 STUB
     chmod +x "$TEST_TMPDIR/bin/npm"
@@ -71,6 +77,9 @@ STUB
 
 teardown() {
     rm -rf "$TEST_TMPDIR"
+    # Clean up artifacts created by setup.sh inside the repo
+    rm -rf "$SCRIPT_DIR/bin"
+    rm -rf "$SCRIPT_DIR/nori-slack-cli/dist"
 }
 
 # ── AGENTS.md generation ──────────────────────────────────────────
@@ -228,6 +237,55 @@ STUB
     ! grep -q "gws" "$HOME/AGENTS.md"
     ! grep -q "sprite" "$HOME/AGENTS.md"
     ! grep -q "gam" "$HOME/AGENTS.md"
+}
+
+# ── bin/ directory (toolshed) ─────────────────────────────────────
+
+@test "setup.sh places nori-slack in bin/ on success" {
+    run "$SETUP"
+    [ "$status" -eq 0 ]
+    [ -e "$SCRIPT_DIR/bin/nori-slack" ]
+    # Target must be a relative path so it works in any clone location
+    local target
+    target="$(readlink "$SCRIPT_DIR/bin/nori-slack")"
+    [ "$target" = "../nori-slack-cli/dist/index.js" ]
+}
+
+@test "setup.sh removes stale bin/nori-slack when build fails" {
+    # Pre-create a stale symlink to verify cleanup
+    mkdir -p "$SCRIPT_DIR/bin"
+    ln -sf ../nori-slack-cli/dist/index.js "$SCRIPT_DIR/bin/nori-slack"
+
+    # Make npm build fail
+    cat > "$TEST_TMPDIR/bin/npm" <<STUB
+#!/bin/bash
+echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
+if [[ "\$1" == "run" && "\$2" == "build" ]]; then exit 1; fi
+exit 0
+STUB
+    chmod +x "$TEST_TMPDIR/bin/npm"
+
+    run "$SETUP"
+    [ "$status" -ne 0 ]
+    [ ! -e "$SCRIPT_DIR/bin/nori-slack" ]
+}
+
+@test "setup.sh bin/nori-slack survives multiple runs" {
+    run "$SETUP"
+    [ "$status" -eq 0 ]
+    [ -e "$SCRIPT_DIR/bin/nori-slack" ]
+
+    run "$SETUP"
+    [ "$status" -eq 0 ]
+    [ -e "$SCRIPT_DIR/bin/nori-slack" ]
+}
+
+# ── AGENTS.md toolshed skill reference ───────────────────────────
+
+@test "~/AGENTS.md references the toolshed skill" {
+    run "$SETUP"
+    [ "$status" -eq 0 ]
+    grep -q "nori-integrations-toolshed" "$HOME/AGENTS.md"
 }
 
 # ── Idempotency ──────────────────────────────────────────────────
