@@ -188,4 +188,52 @@ describe('BrokerClient', () => {
     await client.get('/api/notifications', { category: 'alert', sourceId: 'src1' });
     expect(receivedUrl).toBe('/api/notifications?category=alert&sourceId=src1');
   });
+
+  it('extracts error field from JSON error responses', async () => {
+    ({ server, port } = await startTestServer((_req, res) => {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid or expired token' }));
+    }));
+    const client = new BrokerClient(`http://127.0.0.1:${port}`, 'tok');
+    try {
+      await client.get('/api/sessions');
+      expect.unreachable('should have thrown');
+    } catch (err: any) {
+      expect(err.type).toBe('http');
+      expect(err.status).toBe(401);
+      expect(err.body).toBe('Invalid or expired token');
+    }
+  });
+
+  it('falls back to raw text for non-JSON error responses', async () => {
+    ({ server, port } = await startTestServer((_req, res) => {
+      res.writeHead(502);
+      res.end('Bad Gateway');
+    }));
+    const client = new BrokerClient(`http://127.0.0.1:${port}`, 'tok');
+    try {
+      await client.get('/api/sessions');
+      expect.unreachable('should have thrown');
+    } catch (err: any) {
+      expect(err.type).toBe('http');
+      expect(err.status).toBe(502);
+      expect(err.body).toBe('Bad Gateway');
+    }
+  });
+
+  it('falls back to raw text for JSON without error field', async () => {
+    ({ server, port } = await startTestServer((_req, res) => {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: 'Bad request', details: 'missing field' }));
+    }));
+    const client = new BrokerClient(`http://127.0.0.1:${port}`, 'tok');
+    try {
+      await client.get('/api/sessions');
+      expect.unreachable('should have thrown');
+    } catch (err: any) {
+      expect(err.type).toBe('http');
+      expect(err.status).toBe(400);
+      expect(err.body).toBe('{"message":"Bad request","details":"missing field"}');
+    }
+  });
 });

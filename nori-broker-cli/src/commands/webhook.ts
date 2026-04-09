@@ -1,11 +1,7 @@
 import type { Command } from 'commander';
 import { BrokerClient } from '../client.js';
 import { formatError, type ErrorInput } from '../errors.js';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SOURCE_DIR = path.resolve(__dirname, '../..');
+import { SOURCE_DIR } from '../auth.js';
 
 export function registerWebhook(program: Command): void {
   const webhook = program

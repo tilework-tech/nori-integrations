@@ -18,6 +18,16 @@ export class BrokerClient {
     return headers;
   }
 
+  private async parseErrorBody(response: Response): Promise<never> {
+    const raw = await response.text();
+    let body = raw;
+    try {
+      const json = JSON.parse(raw);
+      if (typeof json.error === 'string') body = json.error;
+    } catch {}
+    throw { type: 'http', status: response.status, body };
+  }
+
   private async request(method: string, path: string, options?: { body?: Record<string, unknown>; query?: Record<string, string> }): Promise<Response> {
     let url = `${this.baseUrl}${path}`;
     if (options?.query) {
@@ -42,8 +52,7 @@ export class BrokerClient {
     }
 
     if (!response.ok) {
-      const body = await response.text();
-      throw { type: 'http', status: response.status, body };
+      await this.parseErrorBody(response);
     }
 
     return response;
@@ -84,8 +93,7 @@ export class BrokerClient {
     }
 
     if (!response.ok) {
-      const body = await response.text();
-      throw { type: 'http', status: response.status, body };
+      await this.parseErrorBody(response);
     }
 
     const data = await response.arrayBuffer();
