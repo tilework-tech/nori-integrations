@@ -15,13 +15,14 @@ Path: @/nori-broker-cli
 
 ### Core Implementation
 - Entry point is [src/index.ts](src/index.ts), which registers command groups and delegates to per-domain command modules in [src/commands/](src/commands/)
-- [src/client.ts](src/client.ts) (`BrokerClient`) provides `get`, `post`, `put`, `delete`, and `downloadBinary` methods. Throws structured error objects (`{ type, status?, body?, message? }`) that the error formatter consumes
-- [src/errors.ts](src/errors.ts) (`formatError`) converts error objects into `CliError` JSON with `ok: false`, human-readable `message`, `suggestion`, and `source` (filesystem path to CLI source directory). Handles `no_token`, `no_broker_url`, `network`, and HTTP status codes (401, 403, 404, 500, 529)
+- [src/auth.ts](src/auth.ts) exports a shared `requireAuth()` function (validates `NORI_BROKER_URL` and `NORI_BROKER_TOKEN`, returns a `BrokerClient`) and `SOURCE_DIR` (resolved package root path). All command modules import from this single file
+- [src/client.ts](src/client.ts) (`BrokerClient`) provides `get`, `post`, `put`, `delete`, and `downloadBinary` methods. On HTTP errors, parses the response body as JSON and extracts the `error` field if present (matching the broker server's `{"error":"..."}` response format), falling back to raw text. Throws structured error objects (`{ type, status?, body?, message? }`) that the error formatter consumes
+- [src/errors.ts](src/errors.ts) (`formatError`) converts error objects into `CliError` JSON with `ok: false`, human-readable `message`, `suggestion`, and `source` (filesystem path to CLI source directory). Handles `no_token`, `no_broker_url`, `network`, and HTTP status codes (401, 403, 404, 500, 503, 529)
 - Each command module follows a uniform pattern: a `registerX(program)` function that creates a subcommand group, with each subcommand calling `requireAuth()` (or constructing a client directly for unauthenticated endpoints), making one HTTP call, and writing JSON to stdout
 
 ### Things to Know
-- Every command module independently defines its own `requireAuth()` and `SOURCE_DIR` -- there is no shared helper. This is a deliberate per-file independence pattern, not accidental duplication
-- `SOURCE_DIR` resolves to the nori-broker-cli package root at runtime via `import.meta.url`, so every error response includes the exact filesystem path to the CLI source for agent debugging
+- `SOURCE_DIR` resolves to the nori-broker-cli package root at runtime via `import.meta.url` in [src/auth.ts](src/auth.ts), so every error response includes the exact filesystem path to the CLI source for agent debugging
+- The broker server returns JSON error bodies (e.g., `{"error":"Invalid or expired token"}`). The client extracts the `error` field so CLI error messages show clean strings rather than raw JSON. Non-JSON responses and JSON without an `error` field fall back to the raw response text
 - The `webhook fire` command supports `--json-input` to read a JSON body from stdin, similar to nori-slack-cli's stdin input mode
 - HTTP 529 is mapped to `no_capacity`, specific to the broker's fleet pool semantics
 - The `fleet set-settings` command accepts timeout values as string options and parses them to integers before sending, same pattern used in `fleet set-size`

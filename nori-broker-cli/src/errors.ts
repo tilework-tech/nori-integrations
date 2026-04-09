@@ -34,15 +34,17 @@ export function formatError(input: ErrorInput, sourceDir: string): CliError {
 function formatHttpError(status: number, body: string, base: { ok: false; source: string }): CliError {
   switch (status) {
     case 401:
-      return { ...base, error: 'unauthorized', message: body || 'Unauthorized', suggestion: 'Check your NORI_BROKER_TOKEN is valid' };
+      return { ...base, error: 'unauthorized', message: body || 'Unauthorized', suggestion: 'Check your NORI_BROKER_TOKEN is valid and not expired' };
     case 403:
       return { ...base, error: 'forbidden', message: body || 'Forbidden', suggestion: 'You do not have permission for this action' };
     case 404:
       return { ...base, error: 'not_found', message: body || 'Not found', suggestion: 'Check the resource path' };
-    case 529:
-      return { ...base, error: 'no_capacity', message: body || 'No capacity available', suggestion: 'No machines available in the fleet. Try again later' };
     case 500:
       return { ...base, error: 'server_error', message: body || 'Internal server error', suggestion: 'The server encountered an error. Try again later' };
+    case 503:
+      return { ...base, error: 'service_unavailable', message: body || 'Service unavailable', suggestion: 'The broker is temporarily unavailable. Please try again shortly' };
+    case 529:
+      return { ...base, error: 'no_capacity', message: body || 'No capacity available', suggestion: 'No machines available in the fleet. Try again later' };
     default:
       return { ...base, error: `http_${status}`, message: body || `HTTP ${status}`, suggestion: 'Unexpected HTTP error' };
   }

@@ -20,11 +20,12 @@ describe('formatError', () => {
     expect(result.source).toBe(sourceDir);
   });
 
-  it('formats HTTP 401 as unauthorized with token suggestion', () => {
+  it('formats HTTP 401 as unauthorized with token and expiry suggestion', () => {
     const result = formatError({ type: 'http', status: 401, body: 'Unauthorized' }, sourceDir);
     expect(result.ok).toBe(false);
     expect(result.error).toBe('unauthorized');
     expect(result.suggestion).toContain('NORI_BROKER_TOKEN');
+    expect(result.suggestion).toContain('expired');
     expect(result.source).toBe(sourceDir);
   });
 
@@ -70,6 +71,15 @@ describe('formatError', () => {
     const result = formatError({ type: 'unknown', message: 'something broke' }, sourceDir);
     expect(result.ok).toBe(false);
     expect(result.error).toBe('unknown_error');
+    expect(result.source).toBe(sourceDir);
+  });
+
+  it('formats HTTP 503 as service_unavailable with retry suggestion', () => {
+    const result = formatError({ type: 'http', status: 503, body: 'Authentication service unavailable' }, sourceDir);
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe('service_unavailable');
+    expect(result.message).toContain('unavailable');
+    expect(result.suggestion).toContain('try again');
     expect(result.source).toBe(sourceDir);
   });
 
