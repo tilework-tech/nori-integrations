@@ -29,7 +29,19 @@ else
     echo "nori-slack-cli setup failed." >&2
 fi
 
-# 2. nori-gws: run setup script to verify/install gws
+# 2. nori-broker-cli: install dependencies, build, and symlink into bin/
+echo "Setting up nori-broker-cli..." >&2
+rm -f "$SCRIPT_DIR/bin/nori-broker"
+if (cd "$SCRIPT_DIR/nori-broker-cli" && npm install && npm run build) >&2; then
+    ln -sf ../nori-broker-cli/dist/index.js "$SCRIPT_DIR/bin/nori-broker"
+    BROKER_OK=true
+else
+    BROKER_OK=false
+    FAILURES=$((FAILURES + 1))
+    echo "nori-broker-cli setup failed." >&2
+fi
+
+# 3. nori-gws: run setup script to verify/install gws (renumbered)
 echo "Setting up nori-gws..." >&2
 if bash "$SCRIPT_DIR/nori-gws/setup.sh" >&2; then
     GWS_OK=true
@@ -65,6 +77,7 @@ fi
     echo "Source: $SCRIPT_DIR"
     echo ""
     [[ "$SLACK_OK" == true ]] && echo "- nori-slack: Slack Web API CLI (nori-slack-cli/)"
+    [[ "$BROKER_OK" == true ]] && echo "- nori-broker: Nori Broker API CLI (nori-broker-cli/)"
     [[ "$GWS_OK" == true ]] && echo "- gws: Google Workspace CLI (nori-gws/)"
     [[ "$SPRITES_OK" == true ]] && echo "- sprite: Sprite inter-agent CLI (nori-sprites/)"
     [[ "$GAM_OK" == true ]] && echo "- gam: Google Admin CLI (nori-gam/)"
@@ -75,8 +88,9 @@ fi
 # 6. Summary
 echo "" >&2
 echo "Setup summary:" >&2
-[[ "$SLACK_OK" == true ]] && echo "  nori-slack-cli: OK" >&2 || echo "  nori-slack-cli: FAIL" >&2
-[[ "$GWS_OK" == true ]] && echo "  nori-gws:       OK" >&2 || echo "  nori-gws:       FAIL" >&2
+[[ "$SLACK_OK" == true ]] && echo "  nori-slack-cli:   OK" >&2 || echo "  nori-slack-cli:   FAIL" >&2
+[[ "$BROKER_OK" == true ]] && echo "  nori-broker-cli:  OK" >&2 || echo "  nori-broker-cli:  FAIL" >&2
+[[ "$GWS_OK" == true ]] && echo "  nori-gws:         OK" >&2 || echo "  nori-gws:         FAIL" >&2
 [[ "$SPRITES_OK" == true ]] && echo "  nori-sprites:   OK" >&2 || echo "  nori-sprites:   FAIL" >&2
 [[ "$GAM_OK" == true ]] && echo "  nori-gam:       OK" >&2 || echo "  nori-gam:       FAIL" >&2
 
