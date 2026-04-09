@@ -80,6 +80,7 @@ teardown() {
     # Clean up artifacts created by setup.sh inside the repo
     rm -rf "$SCRIPT_DIR/bin"
     rm -rf "$SCRIPT_DIR/nori-slack-cli/dist"
+    rm -rf "$SCRIPT_DIR/nori-broker-cli/dist"
 }
 
 # ── AGENTS.md generation ──────────────────────────────────────────
@@ -92,10 +93,11 @@ teardown() {
     grep -q "Source:" "$HOME/AGENTS.md"
 }
 
-@test "~/AGENTS.md lists all four CLIs" {
+@test "~/AGENTS.md lists all five CLIs" {
     run "$SETUP"
     [ "$status" -eq 0 ]
     grep -q "nori-slack" "$HOME/AGENTS.md"
+    grep -q "nori-broker" "$HOME/AGENTS.md"
     grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
@@ -234,6 +236,7 @@ STUB
     [ -f "$HOME/AGENTS.md" ]
     grep -q "# Agent CLIs" "$HOME/AGENTS.md"
     ! grep -q "nori-slack" "$HOME/AGENTS.md"
+    ! grep -q "nori-broker" "$HOME/AGENTS.md"
     ! grep -q "gws" "$HOME/AGENTS.md"
     ! grep -q "sprite" "$HOME/AGENTS.md"
     ! grep -q "gam" "$HOME/AGENTS.md"
@@ -249,6 +252,33 @@ STUB
     local target
     target="$(readlink "$SCRIPT_DIR/bin/nori-slack")"
     [ "$target" = "../nori-slack-cli/dist/index.js" ]
+}
+
+@test "setup.sh places nori-broker in bin/ on success" {
+    run "$SETUP"
+    [ "$status" -eq 0 ]
+    [ -e "$SCRIPT_DIR/bin/nori-broker" ]
+    local target
+    target="$(readlink "$SCRIPT_DIR/bin/nori-broker")"
+    [ "$target" = "../nori-broker-cli/dist/index.js" ]
+}
+
+@test "setup.sh removes stale bin/nori-broker when build fails" {
+    mkdir -p "$SCRIPT_DIR/bin"
+    ln -sf ../nori-broker-cli/dist/index.js "$SCRIPT_DIR/bin/nori-broker"
+
+    # Make npm build fail
+    cat > "$TEST_TMPDIR/bin/npm" <<STUB
+#!/bin/bash
+echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
+if [[ "\$1" == "run" && "\$2" == "build" ]]; then exit 1; fi
+exit 0
+STUB
+    chmod +x "$TEST_TMPDIR/bin/npm"
+
+    run "$SETUP"
+    [ "$status" -ne 0 ]
+    [ ! -e "$SCRIPT_DIR/bin/nori-broker" ]
 }
 
 @test "setup.sh removes stale bin/nori-slack when build fails" {
