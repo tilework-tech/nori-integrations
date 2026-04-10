@@ -61,6 +61,16 @@ exit 0
 STUB
     chmod +x "$TEST_TMPDIR/bin/gam"
 
+    # Stub aws
+    cat > "$TEST_TMPDIR/bin/aws" <<'STUB'
+#!/bin/bash
+if [[ "$1" == "--version" ]]; then echo "aws-cli/2.27.31 Python/3.13.3 Linux/6.12.47-fly exe/x86_64.amzn.2"; exit 0; fi
+if [[ "$1" == "sts" && "$2" == "get-caller-identity" ]]; then echo '{"UserId":"AIDEXAMPLE","Account":"870844658207","Arn":"arn:aws:iam::870844658207:user/nori-deploy"}'; exit 0; fi
+echo '{"ok":true}'
+exit 0
+STUB
+    chmod +x "$TEST_TMPDIR/bin/aws"
+
     # Restrict PATH so only our stubs are used (no real gws/sprite/npm leaking in)
     export PATH="$TEST_TMPDIR/bin:/usr/bin:/bin"
     export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$TEST_TMPDIR/creds.json"
@@ -73,6 +83,8 @@ STUB
     echo '{"type":"service_account"}' > "$GAMCFGDIR/oauth2service.json"
     echo '{"token":"fake"}' > "$GAMCFGDIR/oauth2.txt"
     echo '{"installed":{"client_id":"fake"}}' > "$GAMCFGDIR/client_secrets.json"
+    export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
+    export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 }
 
 teardown() {
@@ -93,7 +105,7 @@ teardown() {
     grep -q "Source:" "$HOME/AGENTS.md"
 }
 
-@test "~/AGENTS.md lists all five CLIs" {
+@test "~/AGENTS.md lists all six CLIs" {
     run "$SETUP"
     [ "$status" -eq 0 ]
     grep -q "nori-slack" "$HOME/AGENTS.md"
@@ -101,6 +113,7 @@ teardown() {
     grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
+    grep -q "^- aws:" "$HOME/AGENTS.md"
 }
 
 # ── Partial failure tolerance ─────────────────────────────────────
@@ -172,6 +185,22 @@ STUB
     grep -q "gam" "$HOME/AGENTS.md"
 }
 
+@test "exits non-zero but writes AGENTS.md when nori-aws-cli fails" {
+    # Remove aws binary and credentials to trigger setup failure
+    rm "$TEST_TMPDIR/bin/aws"
+    unset AWS_ACCESS_KEY_ID
+    unset AWS_SECRET_ACCESS_KEY
+
+    run "$SETUP"
+    [ "$status" -ne 0 ]
+    [ -f "$HOME/AGENTS.md" ]
+    grep -q "nori-slack" "$HOME/AGENTS.md"
+    grep -q "gws" "$HOME/AGENTS.md"
+    grep -q "sprite" "$HOME/AGENTS.md"
+    grep -q "gam" "$HOME/AGENTS.md"
+    ! grep -q "^- aws:" "$HOME/AGENTS.md"
+}
+
 @test "continues running remaining setups after one fails" {
     # Make nori-slack-cli fail, verify gws, sprites, and gam still ran
     cat > "$TEST_TMPDIR/bin/npm" <<STUB
@@ -184,10 +213,11 @@ STUB
 
     run "$SETUP"
     [ "$status" -ne 0 ]
-    # Verify gws, sprites, and gam setup messages appear in output (they ran)
+    # Verify gws, sprites, gam, and aws setup messages appear in output (they ran)
     [[ "$output" == *"Google Workspace CLI is ready"* ]]
     [[ "$output" == *"Sprite CLI is ready"* ]]
     [[ "$output" == *"GAM is ready"* ]]
+    [[ "$output" == *"AWS CLI is ready"* ]]
 }
 
 @test "prints summary with FAIL/OK status for each package" {
@@ -231,6 +261,11 @@ STUB
     rm "$TEST_TMPDIR/bin/gam"
     unset GAMCFGDIR
 
+    # Remove aws and credentials (breaks nori-aws-cli)
+    rm "$TEST_TMPDIR/bin/aws"
+    unset AWS_ACCESS_KEY_ID
+    unset AWS_SECRET_ACCESS_KEY
+
     run "$SETUP"
     [ "$status" -ne 0 ]
     [ -f "$HOME/AGENTS.md" ]
@@ -240,6 +275,7 @@ STUB
     ! grep -q "gws" "$HOME/AGENTS.md"
     ! grep -q "sprite" "$HOME/AGENTS.md"
     ! grep -q "gam" "$HOME/AGENTS.md"
+    ! grep -q "^- aws:" "$HOME/AGENTS.md"
 }
 
 # ── bin/ directory (toolshed) ─────────────────────────────────────
