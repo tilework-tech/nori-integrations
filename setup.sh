@@ -81,17 +81,31 @@ else
     echo "nori-aws-cli setup failed." >&2
 fi
 
+# Helper: emit a tool entry with optional CAPABILITIES.md content
+emit_tool() {
+    local name="$1" label="$2" dir="$3"
+    local caps_file="$SCRIPT_DIR/$dir/CAPABILITIES.md"
+    if [[ -f "$caps_file" ]] && [[ -s "$caps_file" ]]; then
+        echo "- **$name**: $(head -1 "$caps_file")"
+        tail -n +2 "$caps_file" | sed '/^$/d' | while IFS= read -r line || [[ -n "$line" ]]; do
+            echo "  $line"
+        done
+    else
+        echo "- **$name**: $label"
+    fi
+}
+
 # 7. Generate ~/AGENTS.md (only list successful CLIs)
 {
     echo "# Agent CLIs"
     echo "Source: $SCRIPT_DIR"
     echo ""
-    [[ "$SLACK_OK" == true ]] && echo "- nori-slack: Slack Web API CLI (nori-slack-cli/)"
-    [[ "$BROKER_OK" == true ]] && echo "- nori-broker: Nori Broker API CLI (nori-broker-cli/)"
-    [[ "$GWS_OK" == true ]] && echo "- gws: Google Workspace CLI (nori-gws/)"
-    [[ "$SPRITES_OK" == true ]] && echo "- sprite: Sprite inter-agent CLI (nori-sprites/)"
-    [[ "$GAM_OK" == true ]] && echo "- gam: Google Admin CLI (nori-gam/)"
-    [[ "$AWS_OK" == true ]] && echo "- aws: AWS CLI (nori-aws-cli/)"
+    [[ "$SLACK_OK" == true ]] && emit_tool "nori-slack" "Slack Web API CLI (nori-slack-cli/)" "nori-slack-cli"
+    [[ "$BROKER_OK" == true ]] && emit_tool "nori-broker" "Nori Broker API CLI (nori-broker-cli/)" "nori-broker-cli"
+    [[ "$GWS_OK" == true ]] && emit_tool "gws" "Google Workspace CLI (nori-gws/)" "nori-gws"
+    [[ "$SPRITES_OK" == true ]] && emit_tool "sprite" "Sprite inter-agent CLI (nori-sprites/)" "nori-sprites"
+    [[ "$GAM_OK" == true ]] && emit_tool "gam" "Google Admin CLI (nori-gam/)" "nori-gam"
+    [[ "$AWS_OK" == true ]] && emit_tool "aws" "AWS CLI (nori-aws-cli/)" "nori-aws-cli"
     echo ""
     echo "For detailed usage, see the nori-integrations-toolshed skill."
 } > "$HOME/AGENTS.md"
