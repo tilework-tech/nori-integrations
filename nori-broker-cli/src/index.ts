@@ -12,6 +12,7 @@ import { registerTriggers } from './commands/triggers.js';
 import { registerWebhook } from './commands/webhook.js';
 import { registerStats } from './commands/stats.js';
 import { registerE2e } from './commands/e2e.js';
+import { registerLogs } from './commands/logs.js';
 
 const program = new Command();
 program
@@ -30,6 +31,7 @@ registerTriggers(program);
 registerWebhook(program);
 registerStats(program);
 registerE2e(program);
+registerLogs(program);
 
 if (process.argv.length <= 2) {
   process.stderr.write(program.helpInformation() + '\n');
