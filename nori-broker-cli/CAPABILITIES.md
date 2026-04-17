@@ -1,0 +1,10 @@
+Broker API CLI for managing Nori sessions, fleet, triggers, and integrations.
+- Session lifecycle: list, acquire, release, start, restart, destroy
+- Fleet management: check status, resize pool, get/set settings, restart fleet
+- Triggers: create, update, delete, and list scheduled or event-driven triggers
+- Webhook: fire webhook events to the broker
+- Integrations: configure Slack, GitHub, Claude, Google Workspace, and custom integrations
+- Notifications: list, dismiss, and bulk-dismiss notifications
+- Scripts: list and retrieve org scripts
+- Stats: view session statistics
+- Health and onboarding status checks

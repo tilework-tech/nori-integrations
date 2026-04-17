@@ -85,9 +85,21 @@ STUB
     echo '{"installed":{"client_id":"fake"}}' > "$GAMCFGDIR/client_secrets.json"
     export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
     export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
+    # Save all CAPABILITIES.md files so tests can safely mutate them
+    for caps in "$SCRIPT_DIR"/*/CAPABILITIES.md; do
+        [ -f "$caps" ] && cp "$caps" "$TEST_TMPDIR/$(basename "$(dirname "$caps")")-CAPABILITIES.md.bak"
+    done
 }
 
 teardown() {
+    # Restore CAPABILITIES.md files
+    for bak in "$TEST_TMPDIR"/*-CAPABILITIES.md.bak; do
+        [ -f "$bak" ] || continue
+        local dir_name="${bak##*/}"
+        dir_name="${dir_name%-CAPABILITIES.md.bak}"
+        cp "$bak" "$SCRIPT_DIR/$dir_name/CAPABILITIES.md"
+    done
     rm -rf "$TEST_TMPDIR"
     # Clean up artifacts created by setup.sh inside the repo
     rm -rf "$SCRIPT_DIR/bin"
@@ -113,7 +125,7 @@ teardown() {
     grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
-    grep -q "^- aws:" "$HOME/AGENTS.md"
+    grep -qE "^- (\*\*)?aws" "$HOME/AGENTS.md"
 }
 
 # ── Partial failure tolerance ─────────────────────────────────────
@@ -198,7 +210,7 @@ STUB
     grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
-    ! grep -q "^- aws:" "$HOME/AGENTS.md"
+    ! grep -q "aws" "$HOME/AGENTS.md"
 }
 
 @test "continues running remaining setups after one fails" {
@@ -275,7 +287,7 @@ STUB
     ! grep -q "gws" "$HOME/AGENTS.md"
     ! grep -q "sprite" "$HOME/AGENTS.md"
     ! grep -q "gam" "$HOME/AGENTS.md"
-    ! grep -q "^- aws:" "$HOME/AGENTS.md"
+    ! grep -q "aws" "$HOME/AGENTS.md"
 }
 
 # ── bin/ directory (toolshed) ─────────────────────────────────────
@@ -362,5 +374,81 @@ STUB
     [ "$status" -eq 0 ]
     ! grep -q "old content" "$HOME/AGENTS.md"
     grep -q "nori-slack" "$HOME/AGENTS.md"
+}
+
+# ── CAPABILITIES.md inclusion ─────────────────────────────────────
+
+@test "~/AGENTS.md includes capability text from CAPABILITIES.md files" {
+    cat > "$SCRIPT_DIR/nori-slack-cli/CAPABILITIES.md" <<'EOF'
+Slack Web API CLI. Call any Slack API method, paginate results, preview with dry-run.
+- Send and manage messages, reactions, and threads
+- Manage channels: create, archive, invite/remove members
+EOF
+
+    run "$SETUP"
+    [ "$status" -eq 0 ]
+    grep -q "Send and manage messages" "$HOME/AGENTS.md"
+    grep -q "Manage channels" "$HOME/AGENTS.md"
+}
+
+@test "~/AGENTS.md includes capabilities for multiple tools" {
+    cat > "$SCRIPT_DIR/nori-broker-cli/CAPABILITIES.md" <<'EOF'
+Broker API CLI for managing Nori sessions, fleet, triggers, and integrations.
+- Session lifecycle: list, acquire, release, start, restart, destroy
+- Fleet management: status, resize, configure settings
+EOF
+
+    cat > "$SCRIPT_DIR/nori-slack-cli/CAPABILITIES.md" <<'EOF'
+Slack Web API CLI.
+- Send and manage messages
+EOF
+
+    run "$SETUP"
+    [ "$status" -eq 0 ]
+    grep -q "Session lifecycle" "$HOME/AGENTS.md"
+    grep -q "Fleet management" "$HOME/AGENTS.md"
+    grep -q "Send and manage messages" "$HOME/AGENTS.md"
+}
+
+@test "~/AGENTS.md falls back to one-liner when CAPABILITIES.md is missing" {
+    rm -f "$SCRIPT_DIR/nori-slack-cli/CAPABILITIES.md"
+    rm -f "$SCRIPT_DIR/nori-broker-cli/CAPABILITIES.md"
+
+    run "$SETUP"
+    [ "$status" -eq 0 ]
+    # Should still list the tools with fallback one-liner
+    grep -q "nori-slack" "$HOME/AGENTS.md"
+    grep -q "nori-broker" "$HOME/AGENTS.md"
+}
+
+@test "~/AGENTS.md capabilities are indented under tool name" {
+    cat > "$SCRIPT_DIR/nori-slack-cli/CAPABILITIES.md" <<'EOF'
+Slack Web API CLI.
+- Send messages
+EOF
+
+    run "$SETUP"
+    [ "$status" -eq 0 ]
+    grep -q "^  - Send messages" "$HOME/AGENTS.md"
+}
+
+@test "~/AGENTS.md skips capabilities for failed tools even if CAPABILITIES.md exists" {
+    cat > "$SCRIPT_DIR/nori-slack-cli/CAPABILITIES.md" <<'EOF'
+Slack Web API CLI.
+- Send messages
+EOF
+
+    # Make slack build fail
+    cat > "$TEST_TMPDIR/bin/npm" <<STUB
+#!/bin/bash
+echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
+if [[ "\$1" == "run" && "\$2" == "build" ]]; then exit 1; fi
+exit 0
+STUB
+    chmod +x "$TEST_TMPDIR/bin/npm"
+
+    run "$SETUP"
+    [ "$status" -ne 0 ]
+    ! grep -q "Send messages" "$HOME/AGENTS.md"
 }
 
