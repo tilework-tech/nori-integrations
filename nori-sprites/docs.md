@@ -11,7 +11,7 @@ Path: @/nori-sprites
 - Lives alongside [@/nori-slack-cli](../nori-slack-cli/) and [@/nori-gws](../nori-gws/) in the `nori-integrations` monorepo, following the broker integration pattern:
 
 ```
-  Broker (nori-handroll)
+  Broker
     |
     |-- bootstrap: sprite CLI auto-installed by setup.sh if missing
     |-- config-builder: injects SPRITE_TOKEN env var

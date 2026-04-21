@@ -5,10 +5,10 @@ Path: @/
 ### Overview
 - Monorepo containing integration packages that connect Nori agents to third-party services
 - Each subdirectory is a standalone integration package targeting a specific service (Slack, Google Workspace, etc.)
-- Conforms to the **toolshed contract**: the broker (nori-handroll) clones this repo to `~/toolshed/` on sprites, adds `bin/` to `$PATH`, and symlinks `skills/` into `~/.claude/skills/toolshed/`
+- Conforms to the **toolshed contract**: the broker clones this repo to `~/toolshed/` on sprites, adds `bin/` to `$PATH`, and symlinks `skills/` into `~/.claude/skills/toolshed/`
 
 ### How it fits into the larger codebase
-- Integration packages are consumed by the broker (nori-handroll), which clones this repo as a toolshed, runs `setup.sh`, and makes the resulting `bin/` directory available on `$PATH`
+- Integration packages are consumed by the broker, which clones this repo as a toolshed, runs `setup.sh`, and makes the resulting `bin/` directory available on `$PATH`
 - The broker also symlinks [@/skills](skills/) into `~/.claude/skills/toolshed/` so agents on sprites automatically discover the toolshed skill describing available CLIs
 - Each integration follows a common pattern: provide an agent-friendly CLI interface with JSON output, and a setup mechanism to verify prerequisites
 

@@ -11,7 +11,7 @@ Path: @/nori-gws
 - Lives alongside [@/nori-slack-cli](../nori-slack-cli/) in the `nori-integrations` monorepo, following the same broker integration pattern:
 
 ```
-  Broker (nori-handroll)
+  Broker
     |
     |-- bootstrap: installs gws binary via npm-clis
     |-- config-builder: injects credentials as env vars
@@ -19,7 +19,7 @@ Path: @/nori-gws
 ```
 
 - The broker's config-builder is responsible for writing `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` -- this package does not manage credentials, only validates them
-- Broker changes for credential plumbing live in separate PRs against nori-handroll, not in this repository
+- Broker changes for credential plumbing live in separate PRs against the broker repo, not in this repository
 
 ### Core Implementation
 - [setup.sh](setup.sh) runs a sequential validation chain with three exit codes:

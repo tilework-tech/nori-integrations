@@ -9,7 +9,7 @@ Path: @/nori-broker-cli
 
 ### How it fits into the larger codebase
 - Follows the same build/distribution pattern as [@/nori-slack-cli](../nori-slack-cli/): TypeScript project, `npm install && npm run build`, symlinked into `bin/nori-broker` by [@/setup.sh](../setup.sh)
-- The broker server it targets is nori-handroll -- the same system that clones this toolshed repo onto sprites. This means agents on sprites can use `nori-broker` to manage the very broker that provisioned them
+- The broker server it targets is the same system that clones this toolshed repo onto sprites. This means agents on sprites can use `nori-broker` to manage the very broker that provisioned them
 - Auth via `NORI_BROKER_URL` and `NORI_BROKER_TOKEN` environment variables; some commands (health, fleet status, webhook fire) work without a token
 - Unlike nori-slack-cli which wraps a third-party SDK with dynamic dispatch, this CLI has a fixed command surface that mirrors specific broker API endpoints
 
