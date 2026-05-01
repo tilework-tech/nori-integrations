@@ -1,8 +1,45 @@
 import type { Command } from 'commander';
-import { formatError, type ErrorInput } from '../errors.js';
-import { requireAuth, SOURCE_DIR } from '../auth.js';
+import { requireAuth } from '../auth.js';
+import { runCommand } from '../runCommand.js';
 
-export function registerIntegrations(program: Command): void {
+interface SlackOpts {
+  mode?: string;
+  botToken?: string;
+  appToken?: string;
+  signingSecret?: string;
+  clientId?: string;
+  clientSecret?: string;
+  installSecret?: string;
+}
+
+interface GithubOpts {
+  appId?: string;
+  privateKey?: string;
+  installationId?: string;
+}
+
+interface ClaudeOpts {
+  type?: string;
+  apiKey?: string;
+  credentialsJson?: string;
+}
+
+interface GwsOpts {
+  credentialsJson?: string;
+}
+
+const pickDefined = (
+  source: Record<string, unknown>,
+): Record<string, unknown> => {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(source)) {
+    if (v != null) out[k] = v;
+  }
+  return out;
+};
+
+export const registerIntegrations = (args: { program: Command }): void => {
+  const { program } = args;
   const integrations = program
     .command('integrations')
     .description('Manage third-party integrations');
@@ -17,25 +54,21 @@ export function registerIntegrations(program: Command): void {
     .option('--client-id <s>', 'Slack client ID')
     .option('--client-secret <s>', 'Slack client secret')
     .option('--install-secret <s>', 'Slack install secret')
-    .action(async (opts: { mode?: string; botToken?: string; appToken?: string; signingSecret?: string; clientId?: string; clientSecret?: string; installSecret?: string }) => {
-      const { client } = requireAuth();
-      const body: Record<string, unknown> = {};
-      if (opts.mode !== undefined) body.mode = opts.mode;
-      if (opts.botToken !== undefined) body.botToken = opts.botToken;
-      if (opts.appToken !== undefined) body.appToken = opts.appToken;
-      if (opts.signingSecret !== undefined) body.signingSecret = opts.signingSecret;
-      if (opts.clientId !== undefined) body.clientId = opts.clientId;
-      if (opts.clientSecret !== undefined) body.clientSecret = opts.clientSecret;
-      if (opts.installSecret !== undefined) body.installSecret = opts.installSecret;
-      try {
-        const result = await client.put('/api/integrations/slack', body);
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async (opts: SlackOpts) => {
+        const { client } = requireAuth();
+        const body = pickDefined({
+          mode: opts.mode,
+          botToken: opts.botToken,
+          appToken: opts.appToken,
+          signingSecret: opts.signingSecret,
+          clientId: opts.clientId,
+          clientSecret: opts.clientSecret,
+          installSecret: opts.installSecret,
+        });
+        return client.put({ path: '/api/integrations/slack', body });
+      }),
+    );
 
   integrations
     .command('set-github')
@@ -43,107 +76,81 @@ export function registerIntegrations(program: Command): void {
     .option('--app-id <a>', 'GitHub App ID')
     .option('--private-key <k>', 'GitHub App private key')
     .option('--installation-id <i>', 'GitHub App installation ID')
-    .action(async (opts: { appId?: string; privateKey?: string; installationId?: string }) => {
-      const { client } = requireAuth();
-      const body: Record<string, unknown> = {};
-      if (opts.appId !== undefined) body.appId = opts.appId;
-      if (opts.privateKey !== undefined) body.privateKey = opts.privateKey;
-      if (opts.installationId !== undefined) body.installationId = opts.installationId;
-      try {
-        const result = await client.put('/api/integrations/github', body);
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async (opts: GithubOpts) => {
+        const { client } = requireAuth();
+        const body = pickDefined({
+          appId: opts.appId,
+          privateKey: opts.privateKey,
+          installationId: opts.installationId,
+        });
+        return client.put({ path: '/api/integrations/github', body });
+      }),
+    );
 
   integrations
     .command('set-claude')
     .description('Configure Claude AI integration')
-    .option('--type <t>', 'Credential type (api-key or vertex)')
+    .option('--type <t>', 'Credential type (api-key or credentials-json)')
     .option('--api-key <k>', 'Claude API key')
-    .option('--credentials-json <j>', 'Vertex credentials JSON')
-    .action(async (opts: { type?: string; apiKey?: string; credentialsJson?: string }) => {
-      const { client } = requireAuth();
-      const body: Record<string, unknown> = {};
-      if (opts.type !== undefined) body.type = opts.type;
-      if (opts.apiKey !== undefined) body.apiKey = opts.apiKey;
-      if (opts.credentialsJson !== undefined) body.credentialsJson = opts.credentialsJson;
-      try {
-        const result = await client.put('/api/integrations/claude', body);
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .option('--credentials-json <j>', 'Claude credentials JSON')
+    .action(
+      runCommand(async (opts: ClaudeOpts) => {
+        const { client } = requireAuth();
+        const body = pickDefined({
+          type: opts.type,
+          apiKey: opts.apiKey,
+          credentialsJson: opts.credentialsJson,
+        });
+        return client.put({ path: '/api/integrations/claude', body });
+      }),
+    );
 
   integrations
     .command('set-custom')
     .description('Set a custom integration key-value pair')
     .requiredOption('--key <k>', 'Integration key')
     .requiredOption('--value <v>', 'Integration value')
-    .action(async (opts: { key: string; value: string }) => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.put('/api/integrations/custom', { key: opts.key, value: opts.value });
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async (opts: { key: string; value: string }) => {
+        const { client } = requireAuth();
+        return client.put({
+          path: '/api/integrations/custom',
+          body: { key: opts.key, value: opts.value },
+        });
+      }),
+    );
 
   integrations
     .command('list-custom')
     .description('List custom integration entries')
-    .action(async () => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.get('/api/integrations/custom');
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async () => {
+        const { client } = requireAuth();
+        return client.get({ path: '/api/integrations/custom' });
+      }),
+    );
 
   integrations
     .command('delete-custom')
     .description('Delete a custom integration entry')
     .requiredOption('--key <k>', 'Integration key to delete')
-    .action(async (opts: { key: string }) => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.delete(`/api/integrations/custom/${opts.key}`);
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async (opts: { key: string }) => {
+        const { client } = requireAuth();
+        return client.delete({ path: `/api/integrations/custom/${opts.key}` });
+      }),
+    );
 
   integrations
     .command('set-gws')
     .description('Configure Google Workspace integration')
     .option('--credentials-json <j>', 'GWS credentials JSON')
-    .action(async (opts: { credentialsJson?: string }) => {
-      const { client } = requireAuth();
-      const body: Record<string, unknown> = {};
-      if (opts.credentialsJson !== undefined) body.credentialsJson = opts.credentialsJson;
-      try {
-        const result = await client.put('/api/integrations/gws', body);
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
-}
+    .action(
+      runCommand(async (opts: GwsOpts) => {
+        const { client } = requireAuth();
+        const body = pickDefined({ credentialsJson: opts.credentialsJson });
+        return client.put({ path: '/api/integrations/gws', body });
+      }),
+    );
+};

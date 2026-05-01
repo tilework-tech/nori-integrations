@@ -1,8 +1,9 @@
 import type { Command } from 'commander';
-import { formatError, type ErrorInput } from '../errors.js';
-import { requireAuth, SOURCE_DIR } from '../auth.js';
+import { requireAuth } from '../auth.js';
+import { runCommand } from '../runCommand.js';
 
-export function registerSessions(program: Command): void {
+export const registerSessions = (args: { program: Command }): void => {
+  const { program } = args;
   const sessions = program
     .command('sessions')
     .description('Manage browser sessions in the fleet');
@@ -10,94 +11,67 @@ export function registerSessions(program: Command): void {
   sessions
     .command('list')
     .description('List all sessions')
-    .action(async () => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.get('/api/sessions');
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async () => {
+        const { client } = requireAuth();
+        return client.get({ path: '/api/sessions' });
+      }),
+    );
 
   sessions
     .command('acquire')
     .description('Acquire a session from the pool')
-    .action(async () => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.post('/api/sessions/acquire');
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async () => {
+        const { client } = requireAuth();
+        return client.post({ path: '/api/sessions/acquire' });
+      }),
+    );
 
   sessions
     .command('release')
     .description('Release a session back to the pool')
     .requiredOption('--session-id <id>', 'Session ID to release')
-    .action(async (opts: { sessionId: string }) => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.post('/api/sessions/release', { sessionId: opts.sessionId });
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async (opts: { sessionId: string }) => {
+        const { client } = requireAuth();
+        return client.post({
+          path: '/api/sessions/release',
+          body: { sessionId: opts.sessionId },
+        });
+      }),
+    );
 
   sessions
     .command('start')
     .description('Start a session')
     .requiredOption('--id <id>', 'Session ID')
-    .action(async (opts: { id: string }) => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.post(`/api/sessions/${opts.id}/start`);
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async (opts: { id: string }) => {
+        const { client } = requireAuth();
+        return client.post({ path: `/api/sessions/${opts.id}/start` });
+      }),
+    );
 
   sessions
     .command('restart')
     .description('Restart a session')
     .requiredOption('--id <id>', 'Session ID')
-    .action(async (opts: { id: string }) => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.post(`/api/sessions/${opts.id}/restart`);
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async (opts: { id: string }) => {
+        const { client } = requireAuth();
+        return client.post({ path: `/api/sessions/${opts.id}/restart` });
+      }),
+    );
 
   sessions
     .command('destroy')
     .description('Destroy a session')
     .requiredOption('--id <id>', 'Session ID')
-    .action(async (opts: { id: string }) => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.post(`/api/sessions/${opts.id}/destroy`);
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
-}
+    .action(
+      runCommand(async (opts: { id: string }) => {
+        const { client } = requireAuth();
+        return client.post({ path: `/api/sessions/${opts.id}/destroy` });
+      }),
+    );
+};

@@ -1,8 +1,9 @@
 import type { Command } from 'commander';
-import { formatError, type ErrorInput } from '../errors.js';
-import { requireAuth, SOURCE_DIR } from '../auth.js';
+import { requireAuth } from '../auth.js';
+import { runCommand } from '../runCommand.js';
 
-export function registerE2e(program: Command): void {
+export const registerE2e = (args: { program: Command }): void => {
+  const { program } = args;
   const e2e = program
     .command('e2e')
     .description('End-to-end testing utilities');
@@ -11,15 +12,13 @@ export function registerE2e(program: Command): void {
     .command('adopt')
     .description('Adopt a sprite for e2e testing')
     .requiredOption('--sprite-name <n>', 'Name of the sprite to adopt')
-    .action(async (opts: { spriteName: string }) => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.post('/api/e2e/adopt', { spriteName: opts.spriteName });
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
-}
+    .action(
+      runCommand(async (opts: { spriteName: string }) => {
+        const { client } = requireAuth();
+        return client.post({
+          path: '/api/e2e/adopt',
+          body: { spriteName: opts.spriteName },
+        });
+      }),
+    );
+};

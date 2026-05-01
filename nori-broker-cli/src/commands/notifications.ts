@@ -1,8 +1,9 @@
 import type { Command } from 'commander';
-import { formatError, type ErrorInput } from '../errors.js';
-import { requireAuth, SOURCE_DIR } from '../auth.js';
+import { requireAuth } from '../auth.js';
+import { runCommand } from '../runCommand.js';
 
-export function registerNotifications(program: Command): void {
+export const registerNotifications = (args: { program: Command }): void => {
+  const { program } = args;
   const notifications = program
     .command('notifications')
     .description('Manage broker notifications');
@@ -12,65 +13,53 @@ export function registerNotifications(program: Command): void {
     .description('List notifications')
     .option('--category <c>', 'Filter by category')
     .option('--source-id <s>', 'Filter by source ID')
-    .action(async (opts: { category?: string; sourceId?: string }) => {
-      const { client } = requireAuth();
-      const query: Record<string, string> = {};
-      if (opts.category) query.category = opts.category;
-      if (opts.sourceId) query.sourceId = opts.sourceId;
-      try {
-        const result = await client.get('/api/notifications', Object.keys(query).length > 0 ? query : undefined);
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async (opts: { category?: string; sourceId?: string }) => {
+        const { client } = requireAuth();
+        const query: Record<string, string> = {};
+        if (opts.category != null) query.category = opts.category;
+        if (opts.sourceId != null) query.sourceId = opts.sourceId;
+        return client.get({
+          path: '/api/notifications',
+          query: Object.keys(query).length > 0 ? query : null,
+        });
+      }),
+    );
 
   notifications
     .command('dismiss')
     .description('Dismiss a notification')
     .requiredOption('--id <id>', 'Notification ID')
-    .action(async (opts: { id: string }) => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.post(`/api/notifications/${opts.id}/dismiss`);
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async (opts: { id: string }) => {
+        const { client } = requireAuth();
+        return client.post({
+          path: `/api/notifications/${opts.id}/dismiss`,
+        });
+      }),
+    );
 
   notifications
     .command('dismiss-all')
     .description('Dismiss all notifications')
-    .action(async () => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.post('/api/notifications/dismiss-all');
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
+    .action(
+      runCommand(async () => {
+        const { client } = requireAuth();
+        return client.post({ path: '/api/notifications/dismiss-all' });
+      }),
+    );
 
   notifications
     .command('dismiss-by-category')
     .description('Dismiss all notifications in a category')
     .requiredOption('--category <c>', 'Category to dismiss')
-    .action(async (opts: { category: string }) => {
-      const { client } = requireAuth();
-      try {
-        const result = await client.post('/api/notifications/dismiss-by-category', { category: opts.category });
-        process.stdout.write(JSON.stringify(result) + '\n');
-      } catch (e) {
-        const err = formatError(e as ErrorInput, SOURCE_DIR);
-        process.stdout.write(JSON.stringify(err) + '\n');
-        process.exit(1);
-      }
-    });
-}
+    .action(
+      runCommand(async (opts: { category: string }) => {
+        const { client } = requireAuth();
+        return client.post({
+          path: '/api/notifications/dismiss-by-category',
+          body: { category: opts.category },
+        });
+      }),
+    );
+};

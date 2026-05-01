@@ -16,7 +16,9 @@
     "commander": "^13.0.0"
   },
   "devDependencies": {
+    "@types/busboy": "^1.5.4",
     "@types/node": "^22.0.0",
+    "busboy": "^1.6.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
