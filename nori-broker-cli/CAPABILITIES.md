@@ -8,3 +8,4 @@ Broker API CLI for managing Nori sessions, fleet, triggers, and integrations.
 - Scripts: list and retrieve org scripts
 - Stats: view session statistics
 - Health and onboarding status checks
+- Checkpoints: create a git-bundle checkpoint of the current workspace and upload it to the broker, or apply a previously-uploaded checkpoint into a target workspace (sprite-side; powers session resume)
