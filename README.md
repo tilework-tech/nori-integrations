@@ -9,7 +9,6 @@ Each package in this monorepo is either a thin TypeScript CLI wrapping a service
 | CLI           | Description                                                          |
 |---------------|----------------------------------------------------------------------|
 | `nori-slack`  | Slack Web API — call any method dynamically                          |
-| `nori-broker` | Nori Broker API — sessions, fleets, triggers, integrations           |
 | `gws`         | Google Workspace — Drive, Gmail, Calendar, Sheets, Docs              |
 | `gam`         | Google Admin (GAMADV-XTD3) — user/group/device management            |
 | `aws`         | AWS CLI v2 — EC2, S3, CloudFront, Route 53, IAM, and other services  |
