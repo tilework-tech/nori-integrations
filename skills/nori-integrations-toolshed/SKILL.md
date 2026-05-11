@@ -77,52 +77,15 @@ gam info user user@example.com
 
 Requires: `GAMCFGDIR` environment variable pointing to a directory with `oauth2service.json`, `oauth2.txt`, and `client_secrets.json`.
 
-### nori-broker
-
-Nori Broker API CLI. Wraps the full broker HTTP API for session management, fleet configuration, integrations, triggers, notifications, and more.
-
-```bash
-# Check broker health
-nori-broker health
-
-# List all sessions
-nori-broker sessions list
-
-# Acquire a session from the pool
-nori-broker sessions acquire
-
-# Release a session
-nori-broker sessions release --session-id <id>
-
-# Get fleet status (no auth required)
-nori-broker fleet status
-
-# Set fleet size
-nori-broker fleet set-size --size 5
-
-# List triggers
-nori-broker triggers list
-
-# Create a webhook trigger
-nori-broker triggers create --name "my-trigger" --type webhook --prompt "Do something"
-
-# Fire a webhook
-nori-broker webhook fire --trigger-id <id>
-
-# Get session stats
-nori-broker stats sessions --since 7d
-```
-
-Requires: `NORI_BROKER_URL` and `NORI_BROKER_TOKEN` environment variables (some commands like `health`, `fleet status`, and `webhook fire` work without a token).
-
 ## Checking Tool Availability
 
 ```bash
 command -v nori-slack && echo "available" || echo "not available"
-command -v nori-broker && echo "available" || echo "not available"
 command -v gws && echo "available" || echo "not available"
 command -v sprite && echo "available" || echo "not available"
 command -v gam && echo "available" || echo "not available"
 ```
 
 Tools that failed setup are omitted from `~/AGENTS.md`.
+
+The `nori-broker` CLI is also available on every sprite, but it is not part of this toolshed -- it ships through the broker server's base bootstrap bundle (canonical source: `sessions/broker/cli/` in the `tilework-tech/sessions` repo). Refer to its own documentation for usage.
