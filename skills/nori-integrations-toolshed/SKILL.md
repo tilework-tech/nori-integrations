@@ -9,29 +9,6 @@ This toolshed provides CLI tools for interacting with third-party services.
 
 ## Available Tools
 
-### nori-slack
-
-Slack Web API CLI. Wraps the full Slack Web API surface in a single command.
-
-```bash
-# List all available Slack API methods
-nori-slack list-methods
-
-# Describe a specific method's parameters
-nori-slack describe chat.postMessage
-
-# Call a method
-nori-slack chat.postMessage --channel C123456 --text "Hello"
-
-# Paginate through results
-nori-slack --paginate conversations.list --types public_channel
-
-# Dry-run (validate without calling)
-nori-slack --dry-run chat.postMessage --channel C123456 --text "Hello"
-```
-
-Requires: `SLACK_BOT_TOKEN` environment variable.
-
 ### gws
 
 Google Workspace CLI (`@googleworkspace/cli`). Provides access to Google Workspace APIs (Drive, Calendar, Gmail, etc.).
@@ -80,7 +57,6 @@ Requires: `GAMCFGDIR` environment variable pointing to a directory with `oauth2s
 ## Checking Tool Availability
 
 ```bash
-command -v nori-slack && echo "available" || echo "not available"
 command -v gws && echo "available" || echo "not available"
 command -v sprite && echo "available" || echo "not available"
 command -v gam && echo "available" || echo "not available"
@@ -88,4 +64,4 @@ command -v gam && echo "available" || echo "not available"
 
 Tools that failed setup are omitted from `~/AGENTS.md`.
 
-The `nori-broker` CLI is also available on every sprite, but it is not part of this toolshed -- it ships through the broker server's base bootstrap bundle (canonical source: `sessions/broker/cli/` in the `tilework-tech/sessions` repo). Refer to its own documentation for usage.
+The `nori-broker` and `nori-slack` CLIs are also available on every sprite, but they are not part of this toolshed -- they ship through the broker server's base bootstrap bundle. Refer to their own documentation for usage.

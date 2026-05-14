@@ -17,20 +17,6 @@ setup() {
     # Create fake bin dir with stubs for all sub-package dependencies
     mkdir -p "$TEST_TMPDIR/bin"
 
-    # Stub npm: records calls, simulates install/build (creates dist/index.js)
-    cat > "$TEST_TMPDIR/bin/npm" <<STUB
-#!/bin/bash
-echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
-# Simulate build output so bin/ symlinks resolve
-if [[ "\$1" == "run" && "\$2" == "build" ]]; then
-    mkdir -p dist
-    echo '#!/usr/bin/env node' > dist/index.js
-    chmod +x dist/index.js
-fi
-exit 0
-STUB
-    chmod +x "$TEST_TMPDIR/bin/npm"
-
     # Stub gws
     cat > "$TEST_TMPDIR/bin/gws" <<'STUB'
 #!/bin/bash
@@ -71,7 +57,7 @@ exit 0
 STUB
     chmod +x "$TEST_TMPDIR/bin/aws"
 
-    # Restrict PATH so only our stubs are used (no real gws/sprite/npm leaking in)
+    # Restrict PATH so only our stubs are used (no real gws/sprite/gam/aws leaking in)
     export PATH="$TEST_TMPDIR/bin:/usr/bin:/bin"
     export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$TEST_TMPDIR/creds.json"
     echo '{"type":"authorized_user","client_id":"x","client_secret":"x","refresh_token":"x"}' > "$TEST_TMPDIR/creds.json"
@@ -103,7 +89,6 @@ teardown() {
     rm -rf "$TEST_TMPDIR"
     # Clean up artifacts created by setup.sh inside the repo
     rm -rf "$SCRIPT_DIR/bin"
-    rm -rf "$SCRIPT_DIR/nori-slack-cli/dist"
 }
 
 # ── AGENTS.md generation ──────────────────────────────────────────
@@ -116,52 +101,25 @@ teardown() {
     grep -q "Source:" "$HOME/AGENTS.md"
 }
 
-@test "~/AGENTS.md lists all five CLIs" {
+@test "~/AGENTS.md lists all four CLIs" {
     run "$SETUP"
     [ "$status" -eq 0 ]
-    grep -q "nori-slack" "$HOME/AGENTS.md"
-    if grep -q "nori-broker" "$HOME/AGENTS.md"; then return 1; fi
+    if grep -q "nori-slack" "$HOME/AGENTS.md"; then return 1; fi
     grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
-    grep -qE "^- (\*\*)?aws" "$HOME/AGENTS.md"
+    grep -q "aws" "$HOME/AGENTS.md"
 }
 
 # ── Partial failure tolerance ─────────────────────────────────────
 
-@test "exits non-zero but writes AGENTS.md when nori-slack-cli fails" {
-    # Replace npm stub with one that fails on build
-    cat > "$TEST_TMPDIR/bin/npm" <<STUB
-#!/bin/bash
-echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
-if [[ "\$1" == "run" && "\$2" == "build" ]]; then exit 1; fi
-exit 0
-STUB
-    chmod +x "$TEST_TMPDIR/bin/npm"
-
-    run "$SETUP"
-    [ "$status" -ne 0 ]
-    [ -f "$HOME/AGENTS.md" ]
-    ! grep -q "nori-slack" "$HOME/AGENTS.md"
-    grep -q "gws" "$HOME/AGENTS.md"
-    grep -q "sprite" "$HOME/AGENTS.md"
-}
-
 @test "exits non-zero but writes AGENTS.md when nori-gws fails" {
-    # Remove gws to trigger setup failure (missing binary + no npm to install it)
+    # Remove gws to trigger setup failure
     rm "$TEST_TMPDIR/bin/gws"
-    cat > "$TEST_TMPDIR/bin/npm" <<STUB
-#!/bin/bash
-echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
-if [[ "\$1" == "install" && "\$2" == "-g" ]]; then exit 1; fi
-exit 0
-STUB
-    chmod +x "$TEST_TMPDIR/bin/npm"
 
     run "$SETUP"
     [ "$status" -ne 0 ]
     [ -f "$HOME/AGENTS.md" ]
-    grep -q "nori-slack" "$HOME/AGENTS.md"
     ! grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
@@ -175,7 +133,6 @@ STUB
     run "$SETUP"
     [ "$status" -ne 0 ]
     [ -f "$HOME/AGENTS.md" ]
-    grep -q "nori-slack" "$HOME/AGENTS.md"
     grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     ! grep -q "gam" "$HOME/AGENTS.md"
@@ -190,7 +147,6 @@ STUB
     run "$SETUP"
     [ "$status" -ne 0 ]
     [ -f "$HOME/AGENTS.md" ]
-    grep -q "nori-slack" "$HOME/AGENTS.md"
     grep -q "gws" "$HOME/AGENTS.md"
     ! grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
@@ -205,7 +161,6 @@ STUB
     run "$SETUP"
     [ "$status" -ne 0 ]
     [ -f "$HOME/AGENTS.md" ]
-    grep -q "nori-slack" "$HOME/AGENTS.md"
     grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
@@ -213,19 +168,11 @@ STUB
 }
 
 @test "continues running remaining setups after one fails" {
-    # Make nori-slack-cli fail, verify gws, sprites, and gam still ran
-    cat > "$TEST_TMPDIR/bin/npm" <<STUB
-#!/bin/bash
-echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
-if [[ "\$1" == "run" && "\$2" == "build" ]]; then exit 1; fi
-exit 0
-STUB
-    chmod +x "$TEST_TMPDIR/bin/npm"
+    # Make nori-gws fail, verify sprites, gam, and aws still ran
+    rm "$TEST_TMPDIR/bin/gws"
 
     run "$SETUP"
     [ "$status" -ne 0 ]
-    # Verify gws, sprites, gam, and aws setup messages appear in output (they ran)
-    [[ "$output" == *"Google Workspace CLI is ready"* ]]
     [[ "$output" == *"Sprite CLI is ready"* ]]
     [[ "$output" == *"GAM is ready"* ]]
     [[ "$output" == *"AWS CLI is ready"* ]]
@@ -234,32 +181,14 @@ STUB
 @test "prints summary with FAIL/OK status for each package" {
     # Make nori-gws fail
     rm "$TEST_TMPDIR/bin/gws"
-    cat > "$TEST_TMPDIR/bin/npm" <<STUB
-#!/bin/bash
-echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
-if [[ "\$1" == "install" && "\$2" == "-g" ]]; then exit 1; fi
-exit 0
-STUB
-    chmod +x "$TEST_TMPDIR/bin/npm"
 
     run "$SETUP"
     [ "$status" -ne 0 ]
     [[ "$output" == *"nori-gws"*"FAIL"* ]]
-    [[ "$output" == *"nori-slack-cli"*"OK"* ]]
     [[ "$output" == *"nori-gam"*"OK"* ]]
 }
 
 @test "writes AGENTS.md with just header when all packages fail" {
-    # Make npm fail on build (breaks nori-slack-cli)
-    cat > "$TEST_TMPDIR/bin/npm" <<STUB
-#!/bin/bash
-echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
-if [[ "\$1" == "run" && "\$2" == "build" ]]; then exit 1; fi
-if [[ "\$1" == "install" && "\$2" == "-g" ]]; then exit 1; fi
-exit 0
-STUB
-    chmod +x "$TEST_TMPDIR/bin/npm"
-
     # Remove gws (breaks nori-gws)
     rm "$TEST_TMPDIR/bin/gws"
 
@@ -281,8 +210,6 @@ STUB
     [ "$status" -ne 0 ]
     [ -f "$HOME/AGENTS.md" ]
     grep -q "# Agent CLIs" "$HOME/AGENTS.md"
-    ! grep -q "nori-slack" "$HOME/AGENTS.md"
-    ! grep -q "nori-broker" "$HOME/AGENTS.md"
     ! grep -q "gws" "$HOME/AGENTS.md"
     ! grep -q "sprite" "$HOME/AGENTS.md"
     ! grep -q "gam" "$HOME/AGENTS.md"
@@ -291,49 +218,16 @@ STUB
 
 # ── bin/ directory (toolshed) ─────────────────────────────────────
 
-@test "setup.sh places nori-slack in bin/ on success" {
+@test "setup.sh does not place nori-slack in bin/" {
     run "$SETUP"
     [ "$status" -eq 0 ]
-    [ -e "$SCRIPT_DIR/bin/nori-slack" ]
-    # Target must be a relative path so it works in any clone location
-    local target
-    target="$(readlink "$SCRIPT_DIR/bin/nori-slack")"
-    [ "$target" = "../nori-slack-cli/dist/index.js" ]
+    [ ! -e "$SCRIPT_DIR/bin/nori-slack" ]
 }
 
 @test "setup.sh does not place nori-broker in bin/" {
     run "$SETUP"
     [ "$status" -eq 0 ]
     [ ! -e "$SCRIPT_DIR/bin/nori-broker" ]
-}
-
-@test "setup.sh removes stale bin/nori-slack when build fails" {
-    # Pre-create a stale symlink to verify cleanup
-    mkdir -p "$SCRIPT_DIR/bin"
-    ln -sf ../nori-slack-cli/dist/index.js "$SCRIPT_DIR/bin/nori-slack"
-
-    # Make npm build fail
-    cat > "$TEST_TMPDIR/bin/npm" <<STUB
-#!/bin/bash
-echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
-if [[ "\$1" == "run" && "\$2" == "build" ]]; then exit 1; fi
-exit 0
-STUB
-    chmod +x "$TEST_TMPDIR/bin/npm"
-
-    run "$SETUP"
-    [ "$status" -ne 0 ]
-    [ ! -e "$SCRIPT_DIR/bin/nori-slack" ]
-}
-
-@test "setup.sh bin/nori-slack survives multiple runs" {
-    run "$SETUP"
-    [ "$status" -eq 0 ]
-    [ -e "$SCRIPT_DIR/bin/nori-slack" ]
-
-    run "$SETUP"
-    [ "$status" -eq 0 ]
-    [ -e "$SCRIPT_DIR/bin/nori-slack" ]
 }
 
 # ── AGENTS.md toolshed skill reference ───────────────────────────
@@ -351,22 +245,22 @@ STUB
     run "$SETUP"
     [ "$status" -eq 0 ]
     ! grep -q "old content" "$HOME/AGENTS.md"
-    grep -q "nori-slack" "$HOME/AGENTS.md"
+    grep -q "gws" "$HOME/AGENTS.md"
 }
 
 # ── CAPABILITIES.md inclusion ─────────────────────────────────────
 
 @test "~/AGENTS.md includes capability text from CAPABILITIES.md files" {
-    cat > "$SCRIPT_DIR/nori-slack-cli/CAPABILITIES.md" <<'EOF'
-Slack Web API CLI. Call any Slack API method, paginate results, preview with dry-run.
-- Send and manage messages, reactions, and threads
-- Manage channels: create, archive, invite/remove members
+    cat > "$SCRIPT_DIR/nori-gws/CAPABILITIES.md" <<'EOF'
+Google Workspace CLI. Access Drive, Gmail, Calendar, Sheets, and Docs.
+- List, search, and manage Drive files
+- Read and send Gmail messages
 EOF
 
     run "$SETUP"
     [ "$status" -eq 0 ]
-    grep -q "Send and manage messages" "$HOME/AGENTS.md"
-    grep -q "Manage channels" "$HOME/AGENTS.md"
+    grep -q "List, search, and manage Drive files" "$HOME/AGENTS.md"
+    grep -q "Read and send Gmail messages" "$HOME/AGENTS.md"
 }
 
 @test "~/AGENTS.md includes capabilities for multiple tools" {
@@ -376,55 +270,48 @@ AWS CLI v2.
 - S3: upload, download, list buckets
 EOF
 
-    cat > "$SCRIPT_DIR/nori-slack-cli/CAPABILITIES.md" <<'EOF'
-Slack Web API CLI.
-- Send and manage messages
+    cat > "$SCRIPT_DIR/nori-gws/CAPABILITIES.md" <<'EOF'
+Google Workspace CLI.
+- List and manage Drive files
 EOF
 
     run "$SETUP"
     [ "$status" -eq 0 ]
     grep -q "EC2: launch" "$HOME/AGENTS.md"
     grep -q "S3: upload" "$HOME/AGENTS.md"
-    grep -q "Send and manage messages" "$HOME/AGENTS.md"
+    grep -q "List and manage Drive files" "$HOME/AGENTS.md"
 }
 
 @test "~/AGENTS.md falls back to one-liner when CAPABILITIES.md is missing" {
-    rm -f "$SCRIPT_DIR/nori-slack-cli/CAPABILITIES.md"
+    rm -f "$SCRIPT_DIR/nori-gws/CAPABILITIES.md"
 
     run "$SETUP"
     [ "$status" -eq 0 ]
     # Should still list the tool with fallback one-liner
-    grep -q "nori-slack" "$HOME/AGENTS.md"
+    grep -q "gws" "$HOME/AGENTS.md"
 }
 
 @test "~/AGENTS.md capabilities are indented under tool name" {
-    cat > "$SCRIPT_DIR/nori-slack-cli/CAPABILITIES.md" <<'EOF'
-Slack Web API CLI.
-- Send messages
+    cat > "$SCRIPT_DIR/nori-gws/CAPABILITIES.md" <<'EOF'
+Google Workspace CLI.
+- List Drive files
 EOF
 
     run "$SETUP"
     [ "$status" -eq 0 ]
-    grep -q "^  - Send messages" "$HOME/AGENTS.md"
+    grep -q "^  - List Drive files" "$HOME/AGENTS.md"
 }
 
 @test "~/AGENTS.md skips capabilities for failed tools even if CAPABILITIES.md exists" {
-    cat > "$SCRIPT_DIR/nori-slack-cli/CAPABILITIES.md" <<'EOF'
-Slack Web API CLI.
-- Send messages
+    cat > "$SCRIPT_DIR/nori-gws/CAPABILITIES.md" <<'EOF'
+Google Workspace CLI.
+- List Drive files
 EOF
 
-    # Make slack build fail
-    cat > "$TEST_TMPDIR/bin/npm" <<STUB
-#!/bin/bash
-echo "npm \$*" >> "$TEST_TMPDIR/npm_calls.log"
-if [[ "\$1" == "run" && "\$2" == "build" ]]; then exit 1; fi
-exit 0
-STUB
-    chmod +x "$TEST_TMPDIR/bin/npm"
+    # Make gws fail
+    rm "$TEST_TMPDIR/bin/gws"
 
     run "$SETUP"
     [ "$status" -ne 0 ]
-    ! grep -q "Send messages" "$HOME/AGENTS.md"
+    ! grep -q "List Drive files" "$HOME/AGENTS.md"
 }
-
