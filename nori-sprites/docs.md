@@ -8,7 +8,7 @@ Path: @/nori-sprites
 - The sole executable is [setup.sh](setup.sh), a Bash script intended to be called during sprite provisioning
 
 ### How it fits into the larger codebase
-- Lives alongside [@/nori-slack-cli](../nori-slack-cli/) and [@/nori-gws](../nori-gws/) in the `nori-integrations` monorepo, following the broker integration pattern:
+- Lives alongside [@/nori-gws](../nori-gws/) in the `nori-integrations` monorepo, following the broker integration pattern:
 
 ```
   Broker
