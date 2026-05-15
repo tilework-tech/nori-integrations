@@ -14,6 +14,7 @@ Each package in this monorepo is either a thin TypeScript CLI wrapping a service
 | `gam`         | Google Admin (GAMADV-XTD3) — user/group/device management            |
 | `aws`         | AWS CLI v2 — EC2, S3, CloudFront, Route 53, IAM, and other services  |
 | `sprite`      | Inter-sprite communication on Fly.io                                 |
+| `nori-newsletter` | Newsletter management via AWS SES — contacts, sends, CSV import  |
 
 Each subdirectory has a `CAPABILITIES.md` listing what the tool can do and a `docs.md` with architecture and setup details.
 
