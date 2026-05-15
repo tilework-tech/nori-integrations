@@ -1,15 +1,13 @@
 # nori-integrations
 
-A toolshed of agent-friendly CLI integrations that connect coding agents to third-party services (Slack, Google Workspace, AWS, and more).
+A toolshed of agent-friendly CLI integrations that connect coding agents to third-party services (Google Workspace, AWS, and more).
 
-Each package in this monorepo is either a thin TypeScript CLI wrapping a service's SDK (when no agent-friendly CLI exists) or a setup/verification layer around an existing CLI. All of them output JSON to stdout, send human messages to stderr, authenticate via environment variables, and avoid interactive prompts — so agents can call them reliably.
+Each package in this monorepo is a setup/verification layer around an existing agent-friendly CLI. All of them output JSON to stdout, send human messages to stderr, authenticate via environment variables, and avoid interactive prompts — so agents can call them reliably.
 
 ## Integrations
 
 | CLI           | Description                                                          |
 |---------------|----------------------------------------------------------------------|
-| `nori-slack`  | Slack Web API — call any method dynamically                          |
-| `nori-broker` | Nori Broker API — sessions, fleets, triggers, integrations           |
 | `gws`         | Google Workspace — Drive, Gmail, Calendar, Sheets, Docs              |
 | `gam`         | Google Admin (GAMADV-XTD3) — user/group/device management            |
 | `aws`         | AWS CLI v2 — EC2, S3, CloudFront, Route 53, IAM, and other services  |
@@ -25,7 +23,7 @@ Each subdirectory has a `CAPABILITIES.md` listing what the tool can do and a `do
 export PATH="$PWD/bin:$PATH"
 ```
 
-`setup.sh` builds each package, symlinks executables into `bin/`, and writes `~/AGENTS.md` listing every successfully-set-up CLI with its capabilities. Partial failures are tolerated: if one package fails, the rest still install and `~/AGENTS.md` reflects only what succeeded.
+`setup.sh` verifies each integration's prerequisites and writes `~/AGENTS.md` listing every successfully-set-up CLI with its capabilities. Partial failures are tolerated: if one package fails, the rest still set up and `~/AGENTS.md` reflects only what succeeded.
 
 ## Usage modes
 

@@ -3,12 +3,11 @@
 Path: @/nori-gws
 
 ### Overview
-- A setup/configuration package for the `gws` CLI (`@googleworkspace/cli`) -- verifies installation and authentication prerequisites for non-interactive Google Workspace API access
-- Unlike [@/nori-slack-cli](../nori-slack-cli/) which wraps `@slack/web-api` in a custom TypeScript CLI, this integration uses the existing `gws` Rust-based CLI directly and provides only a verification layer
+- A setup/verification layer for the `gws` CLI (`@googleworkspace/cli`) -- verifies installation and authentication prerequisites for non-interactive Google Workspace API access
 - The sole executable is [setup.sh](setup.sh), a Bash script intended to be called during sprite provisioning
 
 ### How it fits into the larger codebase
-- Lives alongside [@/nori-slack-cli](../nori-slack-cli/) in the `nori-integrations` monorepo, following the same broker integration pattern:
+- Lives in the `nori-integrations` monorepo, following the broker integration pattern:
 
 ```
   Broker

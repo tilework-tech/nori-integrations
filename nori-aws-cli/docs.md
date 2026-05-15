@@ -4,14 +4,14 @@ Path: @/nori-aws-cli
 
 ### Overview
 - A setup/verification package for the AWS CLI v2 -- validates installation and credential configuration for non-interactive AWS API access
-- Follows the same shell-script-only pattern (Pattern B) as [@/nori-gws](../nori-gws/), [@/nori-sprites](../nori-sprites/), and [@/nori-gam](../nori-gam/) since the `aws` CLI is already agent-friendly
+- Follows the same shell-script-only pattern as [@/nori-gws](../nori-gws/), [@/nori-sprites](../nori-sprites/), and [@/nori-gam](../nori-gam/) since the `aws` CLI is already agent-friendly
 - The sole executable is [setup.sh](setup.sh), called during sprite provisioning by the root [@/setup.sh](../setup.sh)
 
 ### How it fits into the larger codebase
-- Lives in the `nori-integrations` monorepo alongside other integration packages, orchestrated by the root [setup.sh](../setup.sh) which calls `bash nori-aws-cli/setup.sh` as the 6th integration
+- Lives in the `nori-integrations` monorepo alongside other integration packages, orchestrated by the root [setup.sh](../setup.sh) which calls `bash nori-aws-cli/setup.sh` as one step in the integration sequence
 - The broker is responsible for plumbing AWS credentials (access keys) into the sprite environment -- this package only validates that credentials exist, it does not manage them
-- On success, the root setup.sh adds `- aws: AWS CLI (nori-aws-cli/)` to `~/AGENTS.md` so agents discover the AWS CLI as available tooling
-- Unlike [@/nori-slack-cli](../nori-slack-cli/) and [@/nori-broker-cli](../nori-broker-cli/) which build TypeScript CLIs and symlink into `bin/`, this package produces no binary -- the system `aws` command is used directly
+- On success, the root [setup.sh](../setup.sh) adds `- aws: AWS CLI (nori-aws-cli/)` to `~/AGENTS.md` so agents discover the AWS CLI as available tooling
+- This package produces no binary -- the system `aws` command is used directly
 
 ### Core Implementation
 - [setup.sh](setup.sh) runs a sequential validation chain with three exit codes:
