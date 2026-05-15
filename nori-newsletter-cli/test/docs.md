@@ -16,7 +16,7 @@ Path: @/nori-newsletter-cli/test
   - A stubbed `npm` binary for testing auto-installation
   - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, and `NEWSLETTER_CONFIG_FILE` pre-set -- individual tests unset or override as needed to trigger specific failure paths
   - A fake `$HOME` so tests writing to `~/.aws/` do not affect the real system
-- Config validation tests cover missing env var, nonexistent file, invalid JSON, and missing required keys (partial config with only `contactListName` triggers the missing-keys error)
+- Config validation tests verify that missing env var, nonexistent file, invalid JSON, and missing required keys all produce warnings but still exit 0 (config issues are non-fatal)
 - Credential source tests cover all three detection methods: env vars (default), `~/.aws/credentials` file, and `AWS_PROFILE` + `~/.aws/config`
 - The auto-install test replaces the npm stub with one that creates a `nori-newsletter` binary in the test bin directory upon `npm install -g`
 

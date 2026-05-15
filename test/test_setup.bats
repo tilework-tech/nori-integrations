@@ -183,9 +183,8 @@ teardown() {
 }
 
 @test "exits non-zero but writes AGENTS.md when nori-newsletter-cli fails" {
-    # Remove nori-newsletter binary and config to trigger setup failure
+    # Remove nori-newsletter binary to trigger setup failure (config alone won't fail)
     rm "$TEST_TMPDIR/bin/nori-newsletter"
-    unset NEWSLETTER_CONFIG_FILE
 
     run "$SETUP"
     [ "$status" -ne 0 ]
@@ -237,9 +236,8 @@ teardown() {
     unset AWS_ACCESS_KEY_ID
     unset AWS_SECRET_ACCESS_KEY
 
-    # Remove nori-newsletter and config (breaks nori-newsletter-cli)
+    # Remove nori-newsletter binary (breaks nori-newsletter-cli)
     rm "$TEST_TMPDIR/bin/nori-newsletter"
-    unset NEWSLETTER_CONFIG_FILE
 
     run "$SETUP"
     [ "$status" -ne 0 ]

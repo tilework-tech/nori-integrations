@@ -5,7 +5,7 @@
 #
 # Exit codes:
 #   0 — All checks passed
-#   1 — Missing prerequisite (binary, credentials, or config)
+#   1 — Missing prerequisite (binary, credentials, or region)
 #   2 — Smoke test failed
 #
 # Source: nori-newsletter-cli/setup.sh
@@ -98,42 +98,26 @@ if [[ -z "${AWS_REGION:-}" && -z "${AWS_DEFAULT_REGION:-}" ]]; then
 fi
 EFFECTIVE_REGION="${AWS_REGION:-$AWS_DEFAULT_REGION}"
 
-# 4. Check newsletter config file
+# 4. Check newsletter config file (warn only — not required for setup)
+CONFIG_STATUS="not configured"
 if [[ -z "${NEWSLETTER_CONFIG_FILE:-}" ]]; then
-    echo "ERROR: NEWSLETTER_CONFIG_FILE is not set." >&2
-    echo "" >&2
-    echo "Point it to a JSON config file:" >&2
-    echo "  export NEWSLETTER_CONFIG_FILE=/path/to/newsletter.config.json" >&2
-    echo "" >&2
-    echo "Required keys: contactListName, topicName, fromAddress, replyTo" >&2
-    echo "Source: $SCRIPT_SOURCE" >&2
-    exit 1
-fi
-
-if [[ ! -f "$NEWSLETTER_CONFIG_FILE" ]]; then
-    echo "ERROR: Config file not found: $NEWSLETTER_CONFIG_FILE" >&2
-    echo "Source: $SCRIPT_SOURCE" >&2
-    exit 1
-fi
-
-if ! node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$NEWSLETTER_CONFIG_FILE" 2>/dev/null; then
-    echo "ERROR: Config file is not valid JSON: $NEWSLETTER_CONFIG_FILE" >&2
-    echo "Source: $SCRIPT_SOURCE" >&2
-    exit 1
-fi
-
-MISSING_KEYS=$(node -e "
+    echo "WARNING: NEWSLETTER_CONFIG_FILE is not set." >&2
+    echo "  Set it before using the CLI: export NEWSLETTER_CONFIG_FILE=/path/to/newsletter.config.json" >&2
+elif [[ ! -f "$NEWSLETTER_CONFIG_FILE" ]]; then
+    echo "WARNING: Config file not found: $NEWSLETTER_CONFIG_FILE" >&2
+elif ! node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$NEWSLETTER_CONFIG_FILE" 2>/dev/null; then
+    echo "WARNING: Config file is not valid JSON: $NEWSLETTER_CONFIG_FILE" >&2
+else
+    MISSING_KEYS=$(node -e "
 const cfg = JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'));
 const required = ['contactListName', 'topicName', 'fromAddress', 'replyTo'];
 const missing = required.filter(k => !(k in cfg));
 if (missing.length) { console.log(missing.join(', ')); process.exit(1); }
 " "$NEWSLETTER_CONFIG_FILE" 2>&1) || {
-    echo "ERROR: Config file is missing required keys: $MISSING_KEYS" >&2
-    echo "" >&2
-    echo "Required keys: contactListName, topicName, fromAddress, replyTo" >&2
-    echo "Source: $SCRIPT_SOURCE" >&2
-    exit 1
-}
+        echo "WARNING: Config file is missing required keys: $MISSING_KEYS" >&2
+    }
+    CONFIG_STATUS="$NEWSLETTER_CONFIG_FILE"
+fi
 
 # 5. Smoke test (optional)
 if [[ "$SMOKE_TEST" == true ]]; then
@@ -163,4 +147,4 @@ echo "nori-newsletter-cli is ready." >&2
 echo "  version: $NL_VERSION" >&2
 echo "  credentials: $CRED_SOURCE" >&2
 echo "  region: $EFFECTIVE_REGION" >&2
-echo "  config: $NEWSLETTER_CONFIG_FILE" >&2
+echo "  config: $CONFIG_STATUS" >&2

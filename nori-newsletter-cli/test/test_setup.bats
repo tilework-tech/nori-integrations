@@ -177,36 +177,37 @@ INI
 
 # ── Newsletter config validation ─────────────────────────────────
 
-@test "exits 1 when NEWSLETTER_CONFIG_FILE is not set" {
+@test "exits 0 with warning when NEWSLETTER_CONFIG_FILE is not set" {
     unset NEWSLETTER_CONFIG_FILE
 
     run "$SETUP"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"WARNING"* ]]
     [[ "$output" == *"NEWSLETTER_CONFIG_FILE"* ]]
 }
 
-@test "exits 1 when NEWSLETTER_CONFIG_FILE points to nonexistent file" {
+@test "exits 0 with warning when NEWSLETTER_CONFIG_FILE points to nonexistent file" {
     export NEWSLETTER_CONFIG_FILE="$TEST_TMPDIR/does-not-exist.json"
 
     run "$SETUP"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"does-not-exist.json"* ]] || [[ "$output" == *"not found"* ]]
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"WARNING"* ]]
 }
 
-@test "exits 1 when config file is invalid JSON" {
+@test "exits 0 with warning when config file is invalid JSON" {
     echo "not valid json{{{" > "$NEWSLETTER_CONFIG_FILE"
 
     run "$SETUP"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"JSON"* ]] || [[ "$output" == *"json"* ]] || [[ "$output" == *"parse"* ]]
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"WARNING"* ]]
 }
 
-@test "exits 1 when config file is missing required keys" {
+@test "exits 0 with warning when config file is missing required keys" {
     echo '{"contactListName": "test"}' > "$NEWSLETTER_CONFIG_FILE"
 
     run "$SETUP"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"fromAddress"* ]] || [[ "$output" == *"required"* ]]
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"WARNING"* ]]
 }
 
 # ── Smoke test ───────────────────────────────────────────────────
