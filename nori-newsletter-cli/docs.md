@@ -4,11 +4,11 @@ Path: @/nori-newsletter-cli
 
 ### Overview
 - A setup/verification package for the `nori-newsletter` CLI -- validates installation, AWS credentials, AWS region, and a JSON config file for newsletter management via AWS SES
-- Follows the shell-script-only pattern (Pattern B) like [@/nori-gws](../nori-gws/), [@/nori-sprites](../nori-sprites/), and [@/nori-gam](../nori-gam/) since the `nori-newsletter` CLI is already agent-friendly
+- Follows the shell-script-only pattern (Pattern B) like [@/nori-sprites](../nori-sprites/) and [@/nori-gam](../nori-gam/) since the `nori-newsletter` CLI is already agent-friendly
 - The sole executable is [setup.sh](setup.sh), called during sprite provisioning by the root [@/setup.sh](../setup.sh)
 
 ### How it fits into the larger codebase
-- Lives in the `nori-integrations` monorepo, orchestrated by the root [setup.sh](../setup.sh) which calls `bash nori-newsletter-cli/setup.sh` as the 5th integration in the setup sequence
+- Lives in the `nori-integrations` monorepo, orchestrated by the root [setup.sh](../setup.sh) which calls `bash nori-newsletter-cli/setup.sh` as one step in the setup sequence
 - On success, the root setup.sh adds `nori-newsletter` to `~/AGENTS.md` so agents discover it as available tooling, pulling capability details from [CAPABILITIES.md](CAPABILITIES.md)
 - This package produces no binary -- the globally-installed `nori-newsletter` command is used directly
 - Validates AWS credentials via a priority cascade (env vars > credentials file > named profile), and additionally requires `AWS_REGION` and optionally validates a JSON config file
