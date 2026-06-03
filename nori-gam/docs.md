@@ -4,7 +4,7 @@ Path: @/nori-gam
 
 ### Overview
 - A setup/verification package for the GAM7 (GAMADV-XTD3) CLI, which provides access to Google Admin SDK (user management, group management, device management, etc.)
-- Follows the shell-script-only pattern of [@/nori-sprites](../nori-sprites/) and [@/nori-aws-cli](../nori-aws-cli/) because GAM7 is already an agent-friendly CLI
+- Follows the shell-script-only pattern of [@/nori-sprites](../nori-sprites/) and [@/nori-newsletter-cli](../nori-newsletter-cli/) because GAM7 is already an agent-friendly CLI
 - The sole executable is [setup.sh](setup.sh), a Bash script intended to be called during sprite provisioning
 
 ### How it fits into the larger codebase

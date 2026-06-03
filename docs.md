@@ -3,7 +3,7 @@
 Path: @/
 
 ### Overview
-- Monorepo of org-specific third-party integration CLIs (Google Admin, AWS, Fly.io sprites, newsletter) that connect Nori agents to external services
+- Monorepo of org-specific third-party integration CLIs (Google Admin, Fly.io sprites, newsletter) that connect Nori agents to external services
 - Each subdirectory is a standalone shell-script setup/verification layer around an existing agent-friendly CLI
 - Conforms to the **toolshed contract**: the broker clones this repo to `~/toolshed/` on sprites, adds `bin/` to `$PATH`, and symlinks [@/skills](skills/) into `~/.claude/skills/toolshed/`
 
@@ -15,14 +15,13 @@ Path: @/
 - The `nori-broker` and `nori-slack` CLIs are intentionally NOT part of this toolshed: they are product-guaranteed CLIs delivered through the broker server's base bootstrap bundle (canonical sources in the `tilework-tech/sessions` and `tilework-tech/nori-slack-cli` repos respectively, installed on every sprite regardless of which toolshed an org configures)
 
 ### Core Implementation
-- [setup.sh](setup.sh) -- Unified entry point that bootstraps every integration package in sequence and generates `~/AGENTS.md`. Delegates to each sub-package's own `setup.sh` for the actual validation work ([@/nori-sprites](nori-sprites/), [@/nori-gam](nori-gam/), [@/nori-aws-cli](nori-aws-cli/), [@/nori-newsletter-cli](nori-newsletter-cli/)). Uses the `emit_tool()` helper to format each tool's entry in `~/AGENTS.md`, pulling from `CAPABILITIES.md` when available or falling back to a one-liner description
+- [setup.sh](setup.sh) -- Unified entry point that bootstraps every integration package in sequence and generates `~/AGENTS.md`. Delegates to each sub-package's own `setup.sh` for the actual validation work ([@/nori-sprites](nori-sprites/), [@/nori-gam](nori-gam/), [@/nori-newsletter-cli](nori-newsletter-cli/)). Uses the `emit_tool()` helper to format each tool's entry in `~/AGENTS.md`, pulling from `CAPABILITIES.md` when available or falling back to a one-liner description
 - `CAPABILITIES.md` -- Convention for tool discoverability. Each tool directory can contain a `CAPABILITIES.md` file (static, human-authored) that describes the tool's high-level capabilities in under 300 tokens. The first line becomes the tool header in `~/AGENTS.md`; subsequent non-empty lines are indented beneath it. When absent, the tool falls back to a flat one-liner entry
 - `bin/` -- Generated directory (gitignored) created by [setup.sh](setup.sh). Currently no integrations produce symlinks into this directory since all integrations use system-level CLIs directly, but the directory is still created for forward compatibility with the toolshed contract
 - `~/AGENTS.md` -- Generated (not hand-maintained) discovery file that lists all available CLIs with their capabilities and references the toolshed skill for detailed usage
 - [@/skills](skills/) -- Shared agent skills directory. Contains skill files that the broker symlinks into `~/.claude/skills/toolshed/` on sprites. Distinct from `.claude/skills/` which are for working on this repo itself
 - [@/nori-sprites](nori-sprites/) -- Setup/verification package for the `sprite` CLI for inter-sprite communication on Fly.io
 - [@/nori-gam](nori-gam/) -- Setup/verification package for the `gam` CLI (GAMADV-XTD3) for Google Admin SDK access (user/group/device management)
-- [@/nori-aws-cli](nori-aws-cli/) -- Setup/verification package for the AWS CLI v2 for AWS API access; three credential detection methods (env vars, credentials file, named profiles)
 - [@/nori-newsletter-cli](nori-newsletter-cli/) -- Setup/verification package for the `nori-newsletter` CLI for newsletter management via AWS SES (contact lists, email sending, CSV import, rate throttling); npm-based installation and JSON config file validation
 
 ### Things to Know

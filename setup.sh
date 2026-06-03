@@ -37,17 +37,7 @@ else
     echo "nori-gam setup failed." >&2
 fi
 
-# 3. nori-aws-cli: run setup script to verify/install aws
-echo "Setting up nori-aws-cli..." >&2
-if bash "$SCRIPT_DIR/nori-aws-cli/setup.sh" >&2; then
-    AWS_OK=true
-else
-    AWS_OK=false
-    FAILURES=$((FAILURES + 1))
-    echo "nori-aws-cli setup failed." >&2
-fi
-
-# 4. nori-newsletter-cli: run setup script to verify/install nori-newsletter
+# 3. nori-newsletter-cli: run setup script to verify/install nori-newsletter
 echo "Setting up nori-newsletter-cli..." >&2
 if bash "$SCRIPT_DIR/nori-newsletter-cli/setup.sh" >&2; then
     NEWSLETTER_OK=true
@@ -71,25 +61,23 @@ emit_tool() {
     fi
 }
 
-# 5. Generate ~/AGENTS.md (only list successful CLIs)
+# 4. Generate ~/AGENTS.md (only list successful CLIs)
 {
     echo "# Agent CLIs"
     echo "Source: $SCRIPT_DIR"
     echo ""
     [[ "$SPRITES_OK" == true ]] && emit_tool "sprite" "Sprite inter-agent CLI (nori-sprites/)" "nori-sprites"
     [[ "$GAM_OK" == true ]] && emit_tool "gam" "Google Admin CLI (nori-gam/)" "nori-gam"
-    [[ "$AWS_OK" == true ]] && emit_tool "aws" "AWS CLI (nori-aws-cli/)" "nori-aws-cli"
     [[ "$NEWSLETTER_OK" == true ]] && emit_tool "nori-newsletter" "Newsletter CLI (nori-newsletter-cli/)" "nori-newsletter-cli"
     echo ""
     echo "For detailed usage, see the nori-integrations-toolshed skill."
 } > "$HOME/AGENTS.md"
 
-# 6. Summary
+# 5. Summary
 echo "" >&2
 echo "Setup summary:" >&2
 [[ "$SPRITES_OK" == true ]] && echo "  nori-sprites:         OK" >&2 || echo "  nori-sprites:         FAIL" >&2
 [[ "$GAM_OK" == true ]] && echo "  nori-gam:             OK" >&2 || echo "  nori-gam:             FAIL" >&2
-[[ "$AWS_OK" == true ]] && echo "  nori-aws-cli:         OK" >&2 || echo "  nori-aws-cli:         FAIL" >&2
 [[ "$NEWSLETTER_OK" == true ]] && echo "  nori-newsletter-cli:  OK" >&2 || echo "  nori-newsletter-cli:  FAIL" >&2
 
 if [[ "$FAILURES" -gt 0 ]]; then

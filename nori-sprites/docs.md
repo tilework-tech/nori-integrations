@@ -4,7 +4,7 @@ Path: @/nori-sprites
 
 ### Overview
 - A setup/verification package for the `sprite` CLI -- ensures installation, authentication, and connectivity so coding agents can interact with other sprites in the same Fly.io organization
-- Follows the same shell-script-only pattern as [@/nori-gam](../nori-gam/) and [@/nori-aws-cli](../nori-aws-cli/): the `sprite` CLI is already agent-usable, so this package provides only a verification layer, not a wrapper
+- Follows the same shell-script-only pattern as [@/nori-gam](../nori-gam/) and [@/nori-newsletter-cli](../nori-newsletter-cli/): the `sprite` CLI is already agent-usable, so this package provides only a verification layer, not a wrapper
 - The sole executable is [setup.sh](setup.sh), a Bash script intended to be called during sprite provisioning
 
 ### How it fits into the larger codebase

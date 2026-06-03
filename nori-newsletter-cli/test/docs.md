@@ -7,7 +7,7 @@ Path: @/nori-newsletter-cli/test
 - Covers the success path, npm-based auto-installation, all three AWS credential sources, config file validation, and smoke test pass/fail
 
 ### How it fits into the larger codebase
-- Follows the same test pattern as other shell-based tests in the monorepo ([@/nori-aws-cli/test](../../nori-aws-cli/test/), [@/nori-sprites/test](../../nori-sprites/test/)) -- uses bats since the code under test is Bash
+- Follows the same test pattern as other shell-based tests in the monorepo ([@/nori-sprites/test](../../nori-sprites/test/), [@/nori-gam/test](../../nori-gam/test/)) -- uses bats since the code under test is Bash
 - Tests are self-contained: each test creates a temp directory with stubbed binaries and fake config, then tears it down after
 
 ### Core Implementation
