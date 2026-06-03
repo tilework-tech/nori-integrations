@@ -17,15 +17,6 @@ setup() {
     # Create fake bin dir with stubs for all sub-package dependencies
     mkdir -p "$TEST_TMPDIR/bin"
 
-    # Stub gws
-    cat > "$TEST_TMPDIR/bin/gws" <<'STUB'
-#!/bin/bash
-if [[ "$1" == "--version" ]]; then echo "gws 0.22.5"; exit 0; fi
-echo '{"ok":true}'
-exit 0
-STUB
-    chmod +x "$TEST_TMPDIR/bin/gws"
-
     # Stub sprite
     cat > "$TEST_TMPDIR/bin/sprite" <<'STUB'
 #!/bin/bash
@@ -67,10 +58,8 @@ exit 0
 STUB
     chmod +x "$TEST_TMPDIR/bin/nori-newsletter"
 
-    # Restrict PATH so only our stubs are used (no real gws/sprite/gam/aws/nori-newsletter leaking in)
+    # Restrict PATH so only our stubs are used (no real sprite/gam/aws/nori-newsletter leaking in)
     export PATH="$TEST_TMPDIR/bin:/usr/bin:/bin"
-    export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$TEST_TMPDIR/creds.json"
-    echo '{"type":"authorized_user","client_id":"x","client_secret":"x","refresh_token":"x"}' > "$TEST_TMPDIR/creds.json"
     export SPRITE_TOKEN="org/token-id/secret"
     mkdir -p "$HOME/.sprites"
     echo '{}' > "$HOME/.sprites/sprites.json"
@@ -116,10 +105,9 @@ teardown() {
     grep -q "Source:" "$HOME/AGENTS.md"
 }
 
-@test "~/AGENTS.md lists all five CLIs" {
+@test "~/AGENTS.md lists all four CLIs" {
     run "$SETUP"
     [ "$status" -eq 0 ]
-    grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
     grep -qE "^- (\*\*)?aws" "$HOME/AGENTS.md"
@@ -127,18 +115,6 @@ teardown() {
 }
 
 # ── Partial failure tolerance ─────────────────────────────────────
-
-@test "exits non-zero but writes AGENTS.md when nori-gws fails" {
-    # Remove gws to trigger setup failure
-    rm "$TEST_TMPDIR/bin/gws"
-
-    run "$SETUP"
-    [ "$status" -ne 0 ]
-    [ -f "$HOME/AGENTS.md" ]
-    ! grep -q "gws" "$HOME/AGENTS.md"
-    grep -q "sprite" "$HOME/AGENTS.md"
-    grep -q "gam" "$HOME/AGENTS.md"
-}
 
 @test "exits non-zero but writes AGENTS.md when nori-gam fails" {
     # Remove gam binary and GAMCFGDIR to trigger setup failure
@@ -148,7 +124,6 @@ teardown() {
     run "$SETUP"
     [ "$status" -ne 0 ]
     [ -f "$HOME/AGENTS.md" ]
-    grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     ! grep -q "gam" "$HOME/AGENTS.md"
 }
@@ -162,7 +137,6 @@ teardown() {
     run "$SETUP"
     [ "$status" -ne 0 ]
     [ -f "$HOME/AGENTS.md" ]
-    grep -q "gws" "$HOME/AGENTS.md"
     ! grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
 }
@@ -176,7 +150,6 @@ teardown() {
     run "$SETUP"
     [ "$status" -ne 0 ]
     [ -f "$HOME/AGENTS.md" ]
-    grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
     ! grep -qE "^- (\*\*)?aws" "$HOME/AGENTS.md"
@@ -189,7 +162,6 @@ teardown() {
     run "$SETUP"
     [ "$status" -ne 0 ]
     [ -f "$HOME/AGENTS.md" ]
-    grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
     grep -qE "^- (\*\*)?aws" "$HOME/AGENTS.md"
@@ -197,31 +169,31 @@ teardown() {
 }
 
 @test "continues running remaining setups after one fails" {
-    # Make nori-gws fail, verify sprites, gam, aws, and newsletter still ran
-    rm "$TEST_TMPDIR/bin/gws"
+    # Make nori-sprites fail, verify gam, aws, and newsletter still ran
+    rm "$TEST_TMPDIR/bin/sprite"
+    rm -rf "$HOME/.sprites"
+    unset SPRITE_TOKEN
 
     run "$SETUP"
     [ "$status" -ne 0 ]
-    [[ "$output" == *"Sprite CLI is ready"* ]]
     [[ "$output" == *"GAM is ready"* ]]
     [[ "$output" == *"AWS CLI is ready"* ]]
     [[ "$output" == *"nori-newsletter-cli is ready"* ]]
 }
 
 @test "prints summary with FAIL/OK status for each package" {
-    # Make nori-gws fail
-    rm "$TEST_TMPDIR/bin/gws"
+    # Make nori-sprites fail
+    rm "$TEST_TMPDIR/bin/sprite"
+    rm -rf "$HOME/.sprites"
+    unset SPRITE_TOKEN
 
     run "$SETUP"
     [ "$status" -ne 0 ]
-    [[ "$output" == *"nori-gws"*"FAIL"* ]]
+    [[ "$output" == *"nori-sprites"*"FAIL"* ]]
     [[ "$output" == *"nori-gam"*"OK"* ]]
 }
 
 @test "writes AGENTS.md with just header when all packages fail" {
-    # Remove gws (breaks nori-gws)
-    rm "$TEST_TMPDIR/bin/gws"
-
     # Remove sprite binary and config (breaks nori-sprites)
     rm "$TEST_TMPDIR/bin/sprite"
     rm -rf "$HOME/.sprites"
@@ -243,7 +215,6 @@ teardown() {
     [ "$status" -ne 0 ]
     [ -f "$HOME/AGENTS.md" ]
     grep -q "# Agent CLIs" "$HOME/AGENTS.md"
-    ! grep -q "gws" "$HOME/AGENTS.md"
     ! grep -q "sprite" "$HOME/AGENTS.md"
     ! grep -q "gam" "$HOME/AGENTS.md"
     ! grep -q "aws" "$HOME/AGENTS.md"
@@ -279,22 +250,22 @@ teardown() {
     run "$SETUP"
     [ "$status" -eq 0 ]
     ! grep -q "old content" "$HOME/AGENTS.md"
-    grep -q "gws" "$HOME/AGENTS.md"
+    grep -q "nori-newsletter" "$HOME/AGENTS.md"
 }
 
 # ── CAPABILITIES.md inclusion ─────────────────────────────────────
 
 @test "~/AGENTS.md includes capability text from CAPABILITIES.md files" {
-    cat > "$SCRIPT_DIR/nori-gws/CAPABILITIES.md" <<'EOF'
-Google Workspace CLI. Access Drive, Gmail, Calendar, Sheets, and Docs.
-- List, search, and manage Drive files
-- Read and send Gmail messages
+    cat > "$SCRIPT_DIR/nori-sprites/CAPABILITIES.md" <<'EOF'
+Sprite CLI. Manage Fly.io sprites.
+- List available sprites
+- Send messages to other sprites
 EOF
 
     run "$SETUP"
     [ "$status" -eq 0 ]
-    grep -q "List, search, and manage Drive files" "$HOME/AGENTS.md"
-    grep -q "Read and send Gmail messages" "$HOME/AGENTS.md"
+    grep -q "List available sprites" "$HOME/AGENTS.md"
+    grep -q "Send messages to other sprites" "$HOME/AGENTS.md"
 }
 
 @test "~/AGENTS.md includes capabilities for multiple tools" {
@@ -304,48 +275,50 @@ AWS CLI v2.
 - S3: upload, download, list buckets
 EOF
 
-    cat > "$SCRIPT_DIR/nori-gws/CAPABILITIES.md" <<'EOF'
-Google Workspace CLI.
-- List and manage Drive files
+    cat > "$SCRIPT_DIR/nori-sprites/CAPABILITIES.md" <<'EOF'
+Sprite CLI.
+- List and manage sprites
 EOF
 
     run "$SETUP"
     [ "$status" -eq 0 ]
     grep -q "EC2: launch" "$HOME/AGENTS.md"
     grep -q "S3: upload" "$HOME/AGENTS.md"
-    grep -q "List and manage Drive files" "$HOME/AGENTS.md"
+    grep -q "List and manage sprites" "$HOME/AGENTS.md"
 }
 
 @test "~/AGENTS.md falls back to one-liner when CAPABILITIES.md is missing" {
-    rm -f "$SCRIPT_DIR/nori-gws/CAPABILITIES.md"
+    rm -f "$SCRIPT_DIR/nori-gam/CAPABILITIES.md"
 
     run "$SETUP"
     [ "$status" -eq 0 ]
     # Should still list the tool with fallback one-liner
-    grep -q "gws" "$HOME/AGENTS.md"
+    grep -q "gam" "$HOME/AGENTS.md"
 }
 
 @test "~/AGENTS.md capabilities are indented under tool name" {
-    cat > "$SCRIPT_DIR/nori-gws/CAPABILITIES.md" <<'EOF'
-Google Workspace CLI.
-- List Drive files
+    cat > "$SCRIPT_DIR/nori-sprites/CAPABILITIES.md" <<'EOF'
+Sprite CLI.
+- List sprites
 EOF
 
     run "$SETUP"
     [ "$status" -eq 0 ]
-    grep -q "^  - List Drive files" "$HOME/AGENTS.md"
+    grep -q "^  - List sprites" "$HOME/AGENTS.md"
 }
 
 @test "~/AGENTS.md skips capabilities for failed tools even if CAPABILITIES.md exists" {
-    cat > "$SCRIPT_DIR/nori-gws/CAPABILITIES.md" <<'EOF'
-Google Workspace CLI.
-- List Drive files
+    cat > "$SCRIPT_DIR/nori-sprites/CAPABILITIES.md" <<'EOF'
+Sprite CLI.
+- List sprite capabilities
 EOF
 
-    # Make gws fail
-    rm "$TEST_TMPDIR/bin/gws"
+    # Make sprites fail
+    rm "$TEST_TMPDIR/bin/sprite"
+    rm -rf "$HOME/.sprites"
+    unset SPRITE_TOKEN
 
     run "$SETUP"
     [ "$status" -ne 0 ]
-    ! grep -q "List Drive files" "$HOME/AGENTS.md"
+    ! grep -q "List sprite capabilities" "$HOME/AGENTS.md"
 }

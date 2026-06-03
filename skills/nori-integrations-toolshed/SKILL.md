@@ -9,20 +9,6 @@ This toolshed provides CLI tools for interacting with third-party services.
 
 ## Available Tools
 
-### gws
-
-Google Workspace CLI (`@googleworkspace/cli`). Provides access to Google Workspace APIs (Drive, Calendar, Gmail, etc.).
-
-```bash
-# List Drive files
-gws drive files list --format json
-
-# Get calendar events
-gws calendar events list --calendarId primary --format json
-```
-
-Requires: `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` environment variable pointing to an `authorized_user` credentials JSON file.
-
 ### sprite
 
 Sprite CLI for inter-sprite communication on Fly.io.
@@ -57,7 +43,6 @@ Requires: `GAMCFGDIR` environment variable pointing to a directory with `oauth2s
 ## Checking Tool Availability
 
 ```bash
-command -v gws && echo "available" || echo "not available"
 command -v sprite && echo "available" || echo "not available"
 command -v gam && echo "available" || echo "not available"
 ```

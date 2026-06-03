@@ -7,7 +7,7 @@ Path: @/nori-sprites/test
 - Uses stub binaries and a controlled HOME directory to avoid real CLI calls or network access
 
 ### How it fits into the larger codebase
-- Follows the same testing approach as [@/nori-gws/test](../../nori-gws/test/) -- Bats-based shell tests with stubbed binaries
+- Follows the same testing approach as [@/nori-aws-cli/test](../../nori-aws-cli/test/) -- Bats-based shell tests with stubbed binaries
 - Each test manipulates the test environment (removing the stub binary, unsetting env vars, swapping in failing stubs) to isolate a single code path in setup.sh
 
 ### Core Implementation

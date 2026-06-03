@@ -4,7 +4,7 @@ Path: @/nori-aws-cli
 
 ### Overview
 - A setup/verification package for the AWS CLI v2 -- validates installation and credential configuration for non-interactive AWS API access
-- Follows the same shell-script-only pattern as [@/nori-gws](../nori-gws/), [@/nori-sprites](../nori-sprites/), and [@/nori-gam](../nori-gam/) since the `aws` CLI is already agent-friendly
+- Follows the same shell-script-only pattern as [@/nori-sprites](../nori-sprites/) and [@/nori-gam](../nori-gam/) since the `aws` CLI is already agent-friendly
 - The sole executable is [setup.sh](setup.sh), called during sprite provisioning by the root [@/setup.sh](../setup.sh)
 
 ### How it fits into the larger codebase

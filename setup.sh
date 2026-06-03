@@ -17,17 +17,7 @@ echo "Setting up nori-integrations CLI tools..." >&2
 # Toolshed bin/ directory — executables here are on $PATH when used as a toolshed
 mkdir -p "$SCRIPT_DIR/bin"
 
-# 1. nori-gws: run setup script to verify/install gws
-echo "Setting up nori-gws..." >&2
-if bash "$SCRIPT_DIR/nori-gws/setup.sh" >&2; then
-    GWS_OK=true
-else
-    GWS_OK=false
-    FAILURES=$((FAILURES + 1))
-    echo "nori-gws setup failed." >&2
-fi
-
-# 2. nori-sprites: run setup script to verify/install sprite
+# 1. nori-sprites: run setup script to verify/install sprite
 echo "Setting up nori-sprites..." >&2
 if bash "$SCRIPT_DIR/nori-sprites/setup.sh" >&2; then
     SPRITES_OK=true
@@ -37,7 +27,7 @@ else
     echo "nori-sprites setup failed." >&2
 fi
 
-# 3. nori-gam: run setup script to verify/install gam
+# 2. nori-gam: run setup script to verify/install gam
 echo "Setting up nori-gam..." >&2
 if bash "$SCRIPT_DIR/nori-gam/setup.sh" >&2; then
     GAM_OK=true
@@ -47,7 +37,7 @@ else
     echo "nori-gam setup failed." >&2
 fi
 
-# 4. nori-aws-cli: run setup script to verify/install aws
+# 3. nori-aws-cli: run setup script to verify/install aws
 echo "Setting up nori-aws-cli..." >&2
 if bash "$SCRIPT_DIR/nori-aws-cli/setup.sh" >&2; then
     AWS_OK=true
@@ -57,7 +47,7 @@ else
     echo "nori-aws-cli setup failed." >&2
 fi
 
-# 5. nori-newsletter-cli: run setup script to verify/install nori-newsletter
+# 4. nori-newsletter-cli: run setup script to verify/install nori-newsletter
 echo "Setting up nori-newsletter-cli..." >&2
 if bash "$SCRIPT_DIR/nori-newsletter-cli/setup.sh" >&2; then
     NEWSLETTER_OK=true
@@ -81,12 +71,11 @@ emit_tool() {
     fi
 }
 
-# 6. Generate ~/AGENTS.md (only list successful CLIs)
+# 5. Generate ~/AGENTS.md (only list successful CLIs)
 {
     echo "# Agent CLIs"
     echo "Source: $SCRIPT_DIR"
     echo ""
-    [[ "$GWS_OK" == true ]] && emit_tool "gws" "Google Workspace CLI (nori-gws/)" "nori-gws"
     [[ "$SPRITES_OK" == true ]] && emit_tool "sprite" "Sprite inter-agent CLI (nori-sprites/)" "nori-sprites"
     [[ "$GAM_OK" == true ]] && emit_tool "gam" "Google Admin CLI (nori-gam/)" "nori-gam"
     [[ "$AWS_OK" == true ]] && emit_tool "aws" "AWS CLI (nori-aws-cli/)" "nori-aws-cli"
@@ -95,10 +84,9 @@ emit_tool() {
     echo "For detailed usage, see the nori-integrations-toolshed skill."
 } > "$HOME/AGENTS.md"
 
-# 7. Summary
+# 6. Summary
 echo "" >&2
 echo "Setup summary:" >&2
-[[ "$GWS_OK" == true ]] && echo "  nori-gws:             OK" >&2 || echo "  nori-gws:             FAIL" >&2
 [[ "$SPRITES_OK" == true ]] && echo "  nori-sprites:         OK" >&2 || echo "  nori-sprites:         FAIL" >&2
 [[ "$GAM_OK" == true ]] && echo "  nori-gam:             OK" >&2 || echo "  nori-gam:             FAIL" >&2
 [[ "$AWS_OK" == true ]] && echo "  nori-aws-cli:         OK" >&2 || echo "  nori-aws-cli:         FAIL" >&2

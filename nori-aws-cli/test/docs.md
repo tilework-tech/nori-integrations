@@ -7,7 +7,7 @@ Path: @/nori-aws-cli/test
 - Covers the success path, auto-installation, missing prerequisites, all three credential sources, and smoke test pass/fail
 
 ### How it fits into the larger codebase
-- Follows the same test pattern as other shell-based tests in the monorepo ([@/nori-gws/test](../../nori-gws/test/), [@/nori-sprites/test](../../nori-sprites/test/)) -- uses bats since the code under test is Bash
+- Follows the same test pattern as other shell-based tests in the monorepo ([@/nori-sprites/test](../../nori-sprites/test/), [@/nori-newsletter-cli/test](../../nori-newsletter-cli/test/)) -- uses bats since the code under test is Bash
 - Tests are self-contained: each test creates a temp directory with a stubbed `aws` binary and fake credentials, then tears it down after
 
 ### Core Implementation

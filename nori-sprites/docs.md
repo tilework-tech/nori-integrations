@@ -4,11 +4,11 @@ Path: @/nori-sprites
 
 ### Overview
 - A setup/verification package for the `sprite` CLI -- ensures installation, authentication, and connectivity so coding agents can interact with other sprites in the same Fly.io organization
-- Follows the same shell-script-only pattern as [@/nori-gws](../nori-gws/): the `sprite` CLI is already agent-usable, so this package provides only a verification layer, not a wrapper
+- Follows the same shell-script-only pattern as [@/nori-gam](../nori-gam/) and [@/nori-aws-cli](../nori-aws-cli/): the `sprite` CLI is already agent-usable, so this package provides only a verification layer, not a wrapper
 - The sole executable is [setup.sh](setup.sh), a Bash script intended to be called during sprite provisioning
 
 ### How it fits into the larger codebase
-- Lives alongside [@/nori-gws](../nori-gws/) in the `nori-integrations` monorepo, following the broker integration pattern:
+- Lives alongside the other integration packages in the `nori-integrations` monorepo, following the broker integration pattern:
 
 ```
   Broker
@@ -18,7 +18,7 @@ Path: @/nori-sprites
     |-- orgScript: calls setup.sh to verify installation + auth + connectivity
 ```
 
-- Unlike nori-gws where the broker installs the binary separately, nori-sprites self-installs the `sprite` CLI via `curl -fsSL https://sprites.dev/install.sh | sh` when it is not already on PATH
+- nori-sprites self-installs the `sprite` CLI via `curl -fsSL https://sprites.dev/install.sh | sh` when it is not already on PATH, so the package is self-bootstrapping and does not require the broker to pre-install the binary
 - Authentication is configured via `SPRITE_TOKEN` env var, which setup.sh passes to `sprite auth setup --token`; alternatively, an existing config file at `~/.sprites/sprites.json` satisfies the auth requirement
 
 ### Core Implementation
@@ -40,7 +40,7 @@ Path: @/nori-sprites
 - Every error message includes a `Source:` line pointing back to the script path for traceability
 
 ### Things to Know
-- The auto-install behavior differentiates this from nori-gws, where the binary must already be present -- here, `setup.sh` is self-bootstrapping
+- The auto-install behavior makes `setup.sh` self-bootstrapping: it installs the `sprite` CLI on demand rather than assuming the binary is already present
 - Sprite verification uses exact line matching (`grep -q "^${sprite_name}$"`) against `sprite list` output, so names must match exactly as they appear in the list
 - The script calls `sprite list` twice in the success path when no flags are passed: once would be during the smoke test (if enabled) and once at the end to report the sprite count
 
