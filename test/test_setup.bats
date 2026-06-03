@@ -47,16 +47,6 @@ exit 0
 STUB
     chmod +x "$TEST_TMPDIR/bin/gam"
 
-    # Stub aws
-    cat > "$TEST_TMPDIR/bin/aws" <<'STUB'
-#!/bin/bash
-if [[ "$1" == "--version" ]]; then echo "aws-cli/2.27.31 Python/3.13.3 Linux/6.12.47-fly exe/x86_64.amzn.2"; exit 0; fi
-if [[ "$1" == "sts" && "$2" == "get-caller-identity" ]]; then echo '{"UserId":"AIDEXAMPLE","Account":"870844658207","Arn":"arn:aws:iam::870844658207:user/nori-deploy"}'; exit 0; fi
-echo '{"ok":true}'
-exit 0
-STUB
-    chmod +x "$TEST_TMPDIR/bin/aws"
-
     # Stub nori-newsletter
     cat > "$TEST_TMPDIR/bin/nori-newsletter" <<'STUB'
 #!/bin/bash
@@ -67,7 +57,7 @@ exit 0
 STUB
     chmod +x "$TEST_TMPDIR/bin/nori-newsletter"
 
-    # Restrict PATH so only our stubs are used (no real gws/sprite/gam/aws/nori-newsletter leaking in)
+    # Restrict PATH so only our stubs are used (no real gws/sprite/gam/nori-newsletter leaking in)
     export PATH="$TEST_TMPDIR/bin:/usr/bin:/bin"
     export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$TEST_TMPDIR/creds.json"
     echo '{"type":"authorized_user","client_id":"x","client_secret":"x","refresh_token":"x"}' > "$TEST_TMPDIR/creds.json"
@@ -116,13 +106,12 @@ teardown() {
     grep -q "Source:" "$HOME/AGENTS.md"
 }
 
-@test "~/AGENTS.md lists all five CLIs" {
+@test "~/AGENTS.md lists all four CLIs" {
     run "$SETUP"
     [ "$status" -eq 0 ]
     grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
-    grep -qE "^- (\*\*)?aws" "$HOME/AGENTS.md"
     grep -q "nori-newsletter" "$HOME/AGENTS.md"
 }
 
@@ -167,21 +156,6 @@ teardown() {
     grep -q "gam" "$HOME/AGENTS.md"
 }
 
-@test "exits non-zero but writes AGENTS.md when nori-aws-cli fails" {
-    # Remove aws binary and credentials to trigger setup failure
-    rm "$TEST_TMPDIR/bin/aws"
-    unset AWS_ACCESS_KEY_ID
-    unset AWS_SECRET_ACCESS_KEY
-
-    run "$SETUP"
-    [ "$status" -ne 0 ]
-    [ -f "$HOME/AGENTS.md" ]
-    grep -q "gws" "$HOME/AGENTS.md"
-    grep -q "sprite" "$HOME/AGENTS.md"
-    grep -q "gam" "$HOME/AGENTS.md"
-    ! grep -qE "^- (\*\*)?aws" "$HOME/AGENTS.md"
-}
-
 @test "exits non-zero but writes AGENTS.md when nori-newsletter-cli fails" {
     # Remove nori-newsletter binary to trigger setup failure (config alone won't fail)
     rm "$TEST_TMPDIR/bin/nori-newsletter"
@@ -192,19 +166,17 @@ teardown() {
     grep -q "gws" "$HOME/AGENTS.md"
     grep -q "sprite" "$HOME/AGENTS.md"
     grep -q "gam" "$HOME/AGENTS.md"
-    grep -qE "^- (\*\*)?aws" "$HOME/AGENTS.md"
     ! grep -q "nori-newsletter" "$HOME/AGENTS.md"
 }
 
 @test "continues running remaining setups after one fails" {
-    # Make nori-gws fail, verify sprites, gam, aws, and newsletter still ran
+    # Make nori-gws fail, verify sprites, gam, and newsletter still ran
     rm "$TEST_TMPDIR/bin/gws"
 
     run "$SETUP"
     [ "$status" -ne 0 ]
     [[ "$output" == *"Sprite CLI is ready"* ]]
     [[ "$output" == *"GAM is ready"* ]]
-    [[ "$output" == *"AWS CLI is ready"* ]]
     [[ "$output" == *"nori-newsletter-cli is ready"* ]]
 }
 
@@ -231,11 +203,6 @@ teardown() {
     rm "$TEST_TMPDIR/bin/gam"
     unset GAMCFGDIR
 
-    # Remove aws and credentials (breaks nori-aws-cli)
-    rm "$TEST_TMPDIR/bin/aws"
-    unset AWS_ACCESS_KEY_ID
-    unset AWS_SECRET_ACCESS_KEY
-
     # Remove nori-newsletter binary (breaks nori-newsletter-cli)
     rm "$TEST_TMPDIR/bin/nori-newsletter"
 
@@ -246,7 +213,6 @@ teardown() {
     ! grep -q "gws" "$HOME/AGENTS.md"
     ! grep -q "sprite" "$HOME/AGENTS.md"
     ! grep -q "gam" "$HOME/AGENTS.md"
-    ! grep -q "aws" "$HOME/AGENTS.md"
     ! grep -q "nori-newsletter" "$HOME/AGENTS.md"
 }
 
@@ -298,10 +264,10 @@ EOF
 }
 
 @test "~/AGENTS.md includes capabilities for multiple tools" {
-    cat > "$SCRIPT_DIR/nori-aws-cli/CAPABILITIES.md" <<'EOF'
-AWS CLI v2.
-- EC2: launch, terminate, list instances
-- S3: upload, download, list buckets
+    cat > "$SCRIPT_DIR/nori-gam/CAPABILITIES.md" <<'EOF'
+Google Admin CLI.
+- Users: create, suspend, delete
+- Groups: list and manage membership
 EOF
 
     cat > "$SCRIPT_DIR/nori-gws/CAPABILITIES.md" <<'EOF'
@@ -311,8 +277,8 @@ EOF
 
     run "$SETUP"
     [ "$status" -eq 0 ]
-    grep -q "EC2: launch" "$HOME/AGENTS.md"
-    grep -q "S3: upload" "$HOME/AGENTS.md"
+    grep -q "Users: create" "$HOME/AGENTS.md"
+    grep -q "Groups: list" "$HOME/AGENTS.md"
     grep -q "List and manage Drive files" "$HOME/AGENTS.md"
 }
 

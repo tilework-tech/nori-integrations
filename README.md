@@ -1,6 +1,6 @@
 # nori-integrations
 
-A toolshed of agent-friendly CLI integrations that connect coding agents to third-party services (Google Workspace, AWS, and more).
+A toolshed of agent-friendly CLI integrations that connect coding agents to third-party services (Google Workspace and more).
 
 Each package in this monorepo is a setup/verification layer around an existing agent-friendly CLI. All of them output JSON to stdout, send human messages to stderr, authenticate via environment variables, and avoid interactive prompts — so agents can call them reliably.
 
@@ -10,7 +10,6 @@ Each package in this monorepo is a setup/verification layer around an existing a
 |---------------|----------------------------------------------------------------------|
 | `gws`         | Google Workspace — Drive, Gmail, Calendar, Sheets, Docs              |
 | `gam`         | Google Admin (GAMADV-XTD3) — user/group/device management            |
-| `aws`         | AWS CLI v2 — EC2, S3, CloudFront, Route 53, IAM, and other services  |
 | `sprite`      | Inter-sprite communication on Fly.io                                 |
 | `nori-newsletter` | Newsletter management via AWS SES — contacts, sends, CSV import  |
 
